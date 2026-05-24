@@ -2,26 +2,28 @@ import { supabase } from "../../../lib/supabase";
 
 export default async function Page({ params }) {
 
-  const { data } = await supabase
+  const id = params.id;
+
+  const { data: movies } = await supabase
     .from("movies")
     .select("*");
 
-  const movie = data?.find(
-    (m) => String(m.id) === String(params.id)
+  const movie = movies?.find(
+    (m) => String(m.id) === String(id)
   );
 
   if (!movie) {
     return (
-      <h1
+      <main
         style={{
+          background: "#111",
           color: "white",
-          background: "black",
           minHeight: "100vh",
-          padding: 50,
+          padding: 40,
         }}
       >
-        Movie not found
-      </h1>
+        <h1>Movie not found</h1>
+      </main>
     );
   }
 
