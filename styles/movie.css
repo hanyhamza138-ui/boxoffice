@@ -1,0 +1,44 @@
+body{
+  margin:0;
+  background:#0f172a;
+  color:white;
+  font-family:Arial;
+}
+
+.hero{
+  height:250px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1200') center/cover;
+}
+
+.hero h1{
+  font-size:50px;
+  background:rgba(0,0,0,0.5);
+  padding:20px;
+  border-radius:20px;
+}
+
+.movies-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+  padding:30px;
+}
+
+.movie-card{
+  background:#1e293b;
+  border-radius:20px;
+  overflow:hidden;
+}
+
+.movie-poster{
+  width:100%;
+  height:350px;
+  object-fit:cover;
+}
+
+.movie-info{
+  padding:15px;
+}
