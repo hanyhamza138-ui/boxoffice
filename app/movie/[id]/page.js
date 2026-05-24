@@ -1,95 +1,73 @@
 import { supabase } from "../../../lib/supabase";
 
-export default async function MoviePage({
-  params,
-}) {
+export default async function MoviePage({ params }) {
 
-  const { data: movie } = await supabase
+  const id = Number(params.id);
+
+  const { data: movie, error } = await supabase
     .from("movies")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
-  if (!movie) {
+  if (error || !movie) {
     return (
       <main
-        className="
-          min-h-screen
-          bg-[#111]
-          text-white
-          p-10
-        "
+        style={{
+          background: "#111",
+          color: "white",
+          minHeight: "100vh",
+          padding: 40,
+        }}
       >
-        Movie not found
+        <h1>Movie not found</h1>
       </main>
     );
   }
 
   return (
     <main
-      className="
-        min-h-screen
-        bg-[#111]
-        text-white
-        p-10
-      "
+      style={{
+        background: "#111",
+        color: "white",
+        minHeight: "100vh",
+        padding: 40,
+      }}
     >
 
-      <div
-        className="
-          grid
-          md:grid-cols-2
-          gap-10
-        "
+      <img
+        src={movie.poster}
+        alt={movie.title}
+        style={{
+          width: 300,
+          borderRadius: 20,
+          marginBottom: 20,
+        }}
+      />
+
+      <h1
+        style={{
+          fontSize: 50,
+          marginBottom: 20,
+        }}
       >
+        {movie.title}
+      </h1>
 
-        <img
-          src={movie.poster}
-          alt={movie.title}
-          className="
-            rounded-2xl
-            w-full
-            max-w-[400px]
-          "
-        />
+      <p
+        style={{
+          fontSize: 20,
+          marginBottom: 20,
+        }}
+      >
+        {movie.description}
+      </p>
 
-        <div>
-
-          <h1
-            className="
-              text-5xl
-              font-bold
-              mb-6
-            "
-          >
-            {movie.title}
-          </h1>
-
-          <p
-            className="
-              text-gray-300
-              text-lg
-              mb-6
-            "
-          >
-            {movie.description}
-          </p>
-
-          <div
-            className="
-              text-2xl
-              text-green-400
-              mb-6
-            "
-          >
-            💰 Revenue:
-            {" "}
-            ${movie.revenue}
-          </div>
-
-        </div>
-
-      </div>
+      <h2>
+        💰 Revenue:
+        {" "}
+        ${movie.revenue}
+      </h2>
 
     </main>
   );
