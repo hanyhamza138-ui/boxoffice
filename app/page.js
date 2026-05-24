@@ -3,9 +3,14 @@ import { supabase } from "../lib/supabase";
 
 export default async function HomePage() {
 
-  const { data: movies, error } = await supabase
+  const {
+    data: movies,
+    error,
+  } = await supabase
     .from("movies")
     .select("*");
+
+  console.log(movies);
 
   if (error) {
     return (
@@ -33,6 +38,7 @@ export default async function HomePage() {
         padding: 30,
       }}
     >
+
       <h1
         style={{
           fontSize: 40,
@@ -50,7 +56,9 @@ export default async function HomePage() {
           gap: 20,
         }}
       >
+
         {movies?.map((movie) => (
+
           <div
             key={movie.id}
             style={{
@@ -59,6 +67,7 @@ export default async function HomePage() {
               overflow: "hidden",
             }}
           >
+
             <img
               src={movie.poster}
               alt={movie.title}
@@ -70,14 +79,17 @@ export default async function HomePage() {
             />
 
             <div style={{ padding: 15 }}>
+
               <h2>{movie.title}</h2>
 
               <p>
-                💰 Revenue:{" "}
+                💰 Revenue:
+                {" "}
                 {movie.revenue || 0}
               </p>
 
               <Link href={`/movie/${movie.id}`}>
+
                 <button
                   style={{
                     marginTop: 10,
@@ -89,11 +101,17 @@ export default async function HomePage() {
                 >
                   View Movie
                 </button>
+
               </Link>
+
             </div>
+
           </div>
+
         ))}
+
       </div>
+
     </div>
   );
 }

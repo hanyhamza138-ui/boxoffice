@@ -4,11 +4,13 @@ export default async function Page({ params }) {
 
   const movieId = Number(params.id);
 
-  const { data: movie } = await supabase
+  const { data: movies } = await supabase
     .from("movies")
-    .select("*")
-    .eq("id", movieId)
-    .maybeSingle();
+    .select("*");
+
+  const movie = movies?.find(
+    (m) => m.id === movieId
+  );
 
   if (!movie) {
     return (
@@ -60,11 +62,11 @@ export default async function Page({ params }) {
           marginBottom: 20,
         }}
       >
-        {movie.description}
+        {movie.language}
       </p>
 
       <h2>
-        💰 Revenue: ${movie.revenue}
+        💰 Revenue: {movie.revenue}
       </h2>
 
     </main>
