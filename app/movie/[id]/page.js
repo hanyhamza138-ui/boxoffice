@@ -2,7 +2,9 @@ import { supabase } from "../../../lib/supabase";
 
 export default async function Page({ params }) {
 
-  const movieId = Number(params.id);
+  const { id } = await params;
+
+  const movieId = Number(id);
 
   const { data: movies } = await supabase
     .from("movies")
@@ -36,7 +38,6 @@ export default async function Page({ params }) {
         padding: 40,
       }}
     >
-
       <img
         src={movie.poster}
         alt={movie.title}
@@ -47,28 +48,11 @@ export default async function Page({ params }) {
         }}
       />
 
-      <h1
-        style={{
-          fontSize: 50,
-          marginBottom: 20,
-        }}
-      >
-        {movie.title}
-      </h1>
+      <h1>{movie.title}</h1>
 
-      <p
-        style={{
-          fontSize: 20,
-          marginBottom: 20,
-        }}
-      >
-        {movie.language}
-      </p>
+      <p>Language: {movie.language}</p>
 
-      <h2>
-        💰 Revenue: {movie.revenue}
-      </h2>
-
+      <h2>💰 Revenue: {movie.revenue}</h2>
     </main>
   );
 }
