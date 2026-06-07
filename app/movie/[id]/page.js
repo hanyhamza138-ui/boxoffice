@@ -1,20 +1,16 @@
 import { supabase } from "../../../lib/supabase";
+import Link from "next/link";
 
-export default async function Page({ params }) {
-
+export default async function MoviePage({ params }) {
   const { id } = await params;
 
-  const movieId = Number(id);
-
-  const { data: movies } = await supabase
+  const { data: movie, error } = await supabase
     .from("movies")
-    .select("*");
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  const movie = movies?.find(
-    (m) => m.id === movieId
-  );
-
-  if (!movie) {
+  if (error || !movie) {
     return (
       <main
         style={{
@@ -24,7 +20,7 @@ export default async function Page({ params }) {
           padding: 40,
         }}
       >
-        <h1>Movie not found</h1>
+        <h1>Movie Not Found</h1>
       </main>
     );
   }
@@ -38,21 +34,78 @@ export default async function Page({ params }) {
         padding: 40,
       }}
     >
-      <img
-        src={movie.poster}
-        alt={movie.title}
+      <Link href="/">
+        <button
+          style={{
+            marginBottom: 20,
+            padding: "10px 16px",
+            borderRadius: 8,
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          ← Back
+        </button>
+      </Link>
+
+      <div
         style={{
-          width: 300,
-          borderRadius: 20,
-          marginBottom: 20,
+          display: "flex",
+          gap: 30,
+          flexWrap: "wrap",
         }}
-      />
+      >
+        <img
+          src={movie.poster}
+          alt={movie.title}
+          style={{
+            width: 350,
+            borderRadius: 12,
+          }}
+        />
 
-      <h1>{movie.title}</h1>
+        <div>
+          <h1>{movie.title}</h1>
 
-      <p>Language: {movie.language}</p>
+          <h3>
+            💰 Revenue:{" "}
+            {movie.revenue?.toLocaleString()}
+          </h3>
 
-      <h2>💰 Revenue: {movie.revenue}</h2>
+          <h3>
+            👥 Audience:{" "}
+            {movie.audience?.toLocaleString()}
+          </h3>
+
+          <h3>
+            🎬 Cinemas:{" "}
+            {movie.cinemas?.toLocaleString()}
+          </h3>
+
+          <h3>
+            🌍 Language: {movie.language}
+          </h3>
+
+          {movie.trailer && (
+            <a
+              href={movie.trailer}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "inline-block",
+                marginTop: 20,
+                background: "#dc2626",
+                color: "white",
+                padding: "12px 20px",
+                borderRadius: 8,
+                textDecoration: "none",
+              }}
+            >
+              ▶ Watch Trailer
+            </a>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

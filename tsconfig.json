@@ -30,7 +30,7 @@
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "app/dashboard/page.js"  ],
   "exclude": [
     "node_modules"
   ]

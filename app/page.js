@@ -2,116 +2,167 @@ import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
 export default async function HomePage() {
-
-  const {
-    data: movies,
-    error,
-  } = await supabase
+  const { data: movies, error } = await supabase
     .from("movies")
-    .select("*");
-
-  console.log(movies);
+    .select("*")
+    .order("revenue", { ascending: false });
 
   if (error) {
     return (
-      <div
+      <main
         style={{
           background: "#111",
           color: "white",
           minHeight: "100vh",
-          padding: 30,
+          padding: 40,
         }}
       >
         <h1>Error Loading Movies</h1>
-
         <p>{error.message}</p>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div
+    <main
       style={{
         background: "#111",
-        minHeight: "100vh",
         color: "white",
-        padding: 30,
+        minHeight: "100vh",
+        padding: 40,
       }}
     >
-
-      <h1
+      <div
         style={{
-          fontSize: 40,
-          marginBottom: 30,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 40,
         }}
       >
-        🎬 Box Office Egypt
-      </h1>
+        <h1>🎬 Box Office Egypt</h1>
+
+        <Link href="/admin">
+          <button
+            style={{
+              padding: "10px 18px",
+              border: "none",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            ⚙️ Admin Panel
+          </button>
+        </Link>
+      </div>
+
+      <h2 style={{ marginBottom: 25 }}>
+        🏆 Top Movies By Revenue
+      </h2>
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns:
-            "repeat(auto-fill,minmax(220px,1fr))",
+            "repeat(auto-fill, minmax(260px, 1fr))",
           gap: 20,
         }}
       >
-
-        {movies?.map((movie) => (
-
+        {movies?.map((movie, index) => (
           <div
             key={movie.id}
             style={{
               background: "#1c1c1c",
-              borderRadius: 14,
+              borderRadius: 12,
               overflow: "hidden",
+              border:
+                index === 0
+                  ? "2px solid gold"
+                  : "1px solid #333",
             }}
           >
-
             <img
-              src={movie.poster}
+              src={
+                movie.poster ||
+                "https://via.placeholder.com/300x450?text=No+Poster"
+              }
               alt={movie.title}
               style={{
                 width: "100%",
-                height: 320,
+                height: 380,
                 objectFit: "cover",
               }}
             />
 
             <div style={{ padding: 15 }}>
-
-              <h2>{movie.title}</h2>
+              <h3>
+                #{index + 1} {movie.title}
+              </h3>
 
               <p>
-                💰 Revenue:
-                {" "}
-                {movie.revenue || 0}
+                💰 Revenue:{" "}
+                {movie.revenue?.toLocaleString() || 0}
               </p>
 
-              <Link href={`/movie/${movie.id}`}>
+              <p>
+                👥 Audience:{" "}
+                {movie.audience?.toLocaleString() || 0}
+              </p>
 
-                <button
-                  style={{
-                    marginTop: 10,
-                    padding: "10px 15px",
-                    borderRadius: 8,
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  View Movie
-                </button>
+              <p>
+                🎬 Cinemas:{" "}
+                {movie.cinemas?.toLocaleString() || 0}
+              </p>
 
-              </Link>
+              <p>
+                🌍 Language: {movie.language || "-"}
+              </p>
 
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  marginTop: 15,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Link href={`/movie/${movie.id}`}>
+                  <button
+                    style={{
+                      background: "#2563eb",
+                      color: "white",
+                      border: "none",
+                      padding: "10px 14px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🎬 View Details
+                  </button>
+                </Link>
+
+                {movie.trailer && (
+                  <a
+                    href={movie.trailer}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      background: "#dc2626",
+                      color: "white",
+                      padding: "10px 14px",
+                      borderRadius: 6,
+                      textDecoration: "none",
+                    }}
+                  >
+                    ▶ Trailer
+                  </a>
+                )}
+              </div>
             </div>
-
           </div>
-
         ))}
-
       </div>
-
-    </div>
+    </main>
   );
 }
