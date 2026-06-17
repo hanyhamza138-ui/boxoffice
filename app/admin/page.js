@@ -387,13 +387,20 @@ margin: 0,
           }}
         >
           <h3
-            style={{
-              margin:0,
-              color:"white",
-            }}
-          >
-            {movie.title}
-          </h3>
+  style={{
+    margin: 0,
+    color: "white",
+    fontSize: 30,
+    fontWeight: "bold",
+    textShadow: "0 2px 8px rgba(0,0,0,.8)",
+    lineHeight: 1.2,
+    overflow: "hidden",
+textOverflow: "ellipsis",
+whiteSpace: "nowrap",
+  }}
+>
+  {movie.title}
+</h3>
         </div>
 
       </div>
@@ -402,23 +409,51 @@ margin: 0,
       {/* Info */}
       <div style={{padding:15}}>
 
-        <p>
-          💰 Revenue:
-          {" "}
-          {movie.revenue?.toLocaleString() || 0}
-        </p>
+        
+        <div
+  style={{
+    display:"flex",
+    gap:8,
+    flexWrap:"wrap",
+    marginTop:10,
+  }}
+>
 
-        <p>
-          👥 Audience:
-          {" "}
-          {movie.audience?.toLocaleString() || 0}
-        </p>
+  <span
+    style={{
+      background:"#222",
+      padding:"6px 10px",
+      borderRadius:20,
+      fontSize:17,
+      fontFamily:"Tahoma",
+    }}
+  >
+    💰 {movie.revenue?.toLocaleString() || 0}
+  </span>
 
-        <p>
-          🎬 Cinemas:
-          {" "}
-          {movie.cinemas || 0}
-        </p>
+  <span
+    style={{
+      background:"#222",
+      padding:"6px 10px",
+      borderRadius:20,
+      fontSize:17,
+    }}
+  >
+    👥 {movie.audience?.toLocaleString() || 0}
+  </span>
+
+  <span
+    style={{
+      background:"#222",
+      padding:"6px 10px",
+      borderRadius:20,
+      fontSize:17,
+    }}
+  >
+    🎬 {movie.cinemas || 0}
+  </span>
+
+</div>
 
 
         <div
