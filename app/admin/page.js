@@ -2,35 +2,46 @@ import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { deleteMovie } from "../actions";
 
-export default async function AdminPage() {
-const { data: movies, error } = await supabase
-.from("movies")
-.select("*")
-.order("revenue", { ascending: false });
+export default async function AdminPage({ searchParams }) {
+  const params = await searchParams;
+  const search = params?.search || "";
 
-const { data: dailyStats, error: statsError } =
-await supabase
-.from("daily_stats")
-.select("*");
+  // Movies query (مع search)
+  let query = supabase
+    .from("movies")
+    .select("*")
+    .order("revenue", { ascending: false });
 
-console.log("STATS ERROR =", statsError);
-console.log("DAILY_STATS =", dailyStats);
+  if (search) {
+    query = query.ilike("title", `%${search}%`);
+  }
 
-if (error) {
-return (
-<main
-style={{
-background: "#111",
-color: "white",
-minHeight: "100vh",
-padding: 40,
-}}
-> <h1>Error Loading Movies</h1> <p>{error.message}</p> </main>
-);
-}
+  const { data: movies, error } = await query;
 
-const totalMovies = movies?.length || 0;
+  // Daily stats
+  const { data: dailyStats, error: statsError } = await supabase
+    .from("daily_stats")
+    .select("*");
 
+  console.log("STATS ERROR =", statsError);
+  console.log("DAILY_STATS =", dailyStats);
+
+  if (error) {
+    return (
+      <main
+        style={{
+          background: "#111",
+          color: "white",
+          minHeight: "100vh",
+          padding: 40,
+        }}
+      >
+        <h1>Error Loading Movies</h1>
+        <p>{error.message}</p>
+      </main>
+    );
+  }
+  const totalMovies = movies?.length || 0;
 const totalRevenue =
 movies?.reduce(
 (sum, movie) => sum + (movie.revenue || 0),
@@ -110,7 +121,60 @@ margin: 0,
 >
 ⚙️ Admin Dashboard </h1>
 
+<form
+  method="GET"
+  style={{
+    display: "flex",
+    gap: 10,
+    marginTop: 20,
+    marginBottom: 20,
+  }}
+>
+  <input
+    type="text"
+    name="search"
+    defaultValue={search}
+    placeholder="Search movies..."
+    style={{
+      padding: 10,
+      borderRadius: 8,
+      border: "1px solid #444",
+      background: "#222",
+      color: "white",
+      minWidth: 250,
+    }}
+  />
 
+  <button
+    type="submit"
+    style={{
+      padding: "10px 15px",
+      borderRadius: 8,
+      border: "none",
+      cursor: "pointer",
+      background: "#2563eb",
+      color: "white",
+    }}
+  >
+    🔍 Search
+  </button>
+
+  <Link href="/admin">
+    <button
+      type="button"
+      style={{
+        padding: "10px 15px",
+        borderRadius: 8,
+        border: "none",
+        cursor: "pointer",
+        background: "#444",
+        color: "white",
+      }}
+    >
+      Clear
+    </button>
+  </Link>
+</form>
     <Link href="/admin/add">
       <button
         style={{
