@@ -298,108 +298,183 @@ margin: 0,
     </div>
   </div>
 
-  <table
-    style={{
-      width: "100%",
-      borderCollapse: "collapse",
-      background: "#1c1c1c",
-      borderRadius: 10,
-      overflow: "hidden",
-    }}
-  >
-    <thead>
-      <tr>
-        <th style={{ padding: 15, textAlign: "left" }}>
-          Rank
-        </th>
-        <th style={{ padding: 15, textAlign: "left" }}>
-          Title
-        </th>
-        <th style={{ padding: 15, textAlign: "left" }}>
-          Revenue
-        </th>
-        <th style={{ padding: 15, textAlign: "left" }}>
-          Audience
-        </th>
-        <th style={{ padding: 15, textAlign: "left" }}>
-          Actions
-        </th>
-      </tr>
-    </thead>
+  <div
+  style={{
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fill,minmax(220px,1fr))",
+    gap: 25,
+  }}
+>
+  {movies?.map((movie, index) => (
+    <div
+  key={movie.id}
+  style={{
+    background: "#1c1c1c",
+    borderRadius: 16,
+    overflow: "visible",
+    position: "relative",
+    boxShadow: "0 10px 25px rgba(0,0,0,.3)",
+    paddingTop: 25,
+  }}
+>
 
-    <tbody>
-      {movies?.map((movie, index) => (
-        <tr
-          key={movie.id}
+      {/* Poster */}
+      <div
+        style={{
+          height: 340,
+          position: "relative",
+        }}
+      >
+
+        {movie.poster ? (
+          <img
+            src={movie.poster}
+            alt={movie.title}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              height:"100%",
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              color:"#777",
+            }}
+          >
+            No Poster
+          </div>
+        )}
+
+
+        {/* Rank Hex Style */}
+        <div
           style={{
-            borderTop: "1px solid #333",
+            position:"absolute",
+            top:15,
+            left:15,
+            background:"#dc2626",
+            color:"white",
+            width:45,
+            height:45,
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            clipPath:
+              "polygon(25% 6%,75% 6%,100% 50%,75% 94%,25% 94%,0 50%)",
+            fontWeight:"bold",
           }}
         >
-          <td style={{ padding: 15 }}>
-            #{index + 1}
-          </td>
+          {index + 1}
+        </div>
 
-          <td style={{ padding: 15 }}>
+
+        {/* Title Overlay */}
+        <div
+          style={{
+            position:"absolute",
+            bottom:0,
+            left:0,
+            right:0,
+            padding:"60px 15px 15px",
+            background:
+            "linear-gradient(transparent,rgba(0,0,0,.95))",
+          }}
+        >
+          <h3
+            style={{
+              margin:0,
+              color:"white",
+            }}
+          >
             {movie.title}
-          </td>
+          </h3>
+        </div>
 
-          <td style={{ padding: 15 }}>
-            {movie.revenue?.toLocaleString() || 0}
-          </td>
+      </div>
 
-          <td style={{ padding: 15 }}>
-            {movie.audience?.toLocaleString() || 0}
-          </td>
 
-          <td style={{ padding: 15 }}>
-            <div
+      {/* Info */}
+      <div style={{padding:15}}>
+
+        <p>
+          💰 Revenue:
+          {" "}
+          {movie.revenue?.toLocaleString() || 0}
+        </p>
+
+        <p>
+          👥 Audience:
+          {" "}
+          {movie.audience?.toLocaleString() || 0}
+        </p>
+
+        <p>
+          🎬 Cinemas:
+          {" "}
+          {movie.cinemas || 0}
+        </p>
+
+
+        <div
+          style={{
+            display:"flex",
+            gap:10,
+            marginTop:15,
+          }}
+        >
+
+          <Link href={`/admin/edit/${movie.id}`}>
+            <button
               style={{
-                display: "flex",
-                gap: 10,
+                background:"#2563eb",
+                color:"white",
+                border:"none",
+                padding:"8px 12px",
+                borderRadius:8,
+                cursor:"pointer",
               }}
             >
-              <Link href={`/admin/edit/${movie.id}`}>
-                <button
-                  style={{
-                    background: "#2563eb",
-                    color: "white",
-                    border: "none",
-                    padding: "8px 14px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                  }}
-                >
-                  ✏️ Edit
-                </button>
-              </Link>
+              ✏️ Edit
+            </button>
+          </Link>
 
-              <form action={deleteMovie}>
-                <input
-                  type="hidden"
-                  name="id"
-                  value={movie.id}
-                />
 
-                <button
-                  type="submit"
-                  style={{
-                    background: "#dc2626",
-                    color: "white",
-                    border: "none",
-                    padding: "8px 14px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                  }}
-                >
-                  🗑 Delete
-                </button>
-              </form>
-            </div>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
+          <form action={deleteMovie}>
+            <input
+              type="hidden"
+              name="id"
+              value={movie.id}
+            />
+
+            <button
+              type="submit"
+              style={{
+                background:"#dc2626",
+                color:"white",
+                border:"none",
+                padding:"8px 12px",
+                borderRadius:8,
+                cursor:"pointer",
+              }}
+            >
+              🗑 Delete
+            </button>
+
+          </form>
+
+        </div>
+
+      </div>
+
+    </div>
+  ))}
+</div>
 </main>
 
 );
