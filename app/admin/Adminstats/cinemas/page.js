@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { supabase } from "../../../lib/supabase";
-import { deleteCinema } from "../../actions";
+import { supabase } from "../../../../lib/supabase";
+import { deleteCinema } from "../../../../actions";
 
 export default async function CinemasPage() {
 
