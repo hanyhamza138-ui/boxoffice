@@ -3,10 +3,12 @@ import { supabase } from "../../../../lib/supabase";
 import { deleteCinema } from "../../../actions";
 
 export default async function CinemasPage() {
-  const { data: cinemas = [] } = await supabase
+  const { data, error } = await supabase
     .from("cinemas")
     .select("*")
     .order("name");
+
+  const cinemas = data || [];
 
   return (
     <main
