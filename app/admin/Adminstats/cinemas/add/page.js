@@ -1,4 +1,4 @@
-import { addCinema } from "../../../actions";
+import { addCinema } from "../../../../actions";
 
 export default function AddCinemaPage() {
   return (
