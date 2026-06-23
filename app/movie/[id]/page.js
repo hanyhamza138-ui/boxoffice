@@ -28,7 +28,7 @@ export default async function MoviePage({ params }) {
   return (
     <main
       style={{
-        background: "#111",
+        background: "#0b0b0b",
         color: "white",
         minHeight: "100vh",
         padding: 40,
@@ -37,11 +37,13 @@ export default async function MoviePage({ params }) {
       <Link href="/">
         <button
           style={{
-            marginBottom: 20,
-            padding: "10px 16px",
+            marginBottom: 25,
+            padding: "10px 18px",
             borderRadius: 8,
             border: "none",
             cursor: "pointer",
+            background: "#333",
+            color: "white",
           }}
         >
           ← Back
@@ -50,41 +52,78 @@ export default async function MoviePage({ params }) {
 
       <div
         style={{
-          display: "flex",
-          gap: 30,
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: "350px 1fr",
+          gap: 40,
+          alignItems: "start",
         }}
       >
         <img
-          src={movie.poster}
+          src={
+            movie.poster ||
+            "https://placehold.co/350x500?text=No+Poster"
+          }
           alt={movie.title}
           style={{
             width: 350,
-            borderRadius: 12,
+            height: 520,
+            objectFit: "cover",
+            borderRadius: 15,
+            boxShadow: "0 10px 30px rgba(0,0,0,.5)",
           }}
         />
 
         <div>
-          <h1>{movie.title}</h1>
+          <h1
+            style={{
+              fontSize: 48,
+              marginTop: 0,
+              marginBottom: 20,
+            }}
+          >
+            {movie.title}
+          </h1>
 
-          <h3>
-            💰 Revenue:{" "}
-            {movie.revenue?.toLocaleString()}
-          </h3>
+          <div
+            style={{
+              background: "#171717",
+              padding: 25,
+              borderRadius: 15,
+              maxWidth: 700,
+            }}
+          >
+            <p>
+              💰 Revenue:
+              <strong>
+                {" "}
+                {(movie.revenue || 0).toLocaleString()}
+              </strong>
+            </p>
 
-          <h3>
-            👥 Audience:{" "}
-            {movie.audience?.toLocaleString()}
-          </h3>
+            <p>
+              👥 Audience:
+              <strong>
+                {" "}
+                {(movie.audience || 0).toLocaleString()}
+              </strong>
+            </p>
 
-          <h3>
-            🎬 Cinemas:{" "}
-            {movie.cinemas?.toLocaleString()}
-          </h3>
+            <p>
+              🎬 Cinemas:
+              <strong>
+                {" "}
+                {(movie.cinemas || 0).toLocaleString()}
+              </strong>
+            </p>
 
-          <h3>
-            🌍 Language: {movie.language}
-          </h3>
+            <p>
+              🌍 Language:
+              <strong>
+                {" "}
+                {movie.language || "N/A"}
+              </strong>
+            </p>
+          </div>
 
           {movie.trailer && (
             <a
@@ -99,6 +138,7 @@ export default async function MoviePage({ params }) {
                 padding: "12px 20px",
                 borderRadius: 8,
                 textDecoration: "none",
+                fontWeight: "bold",
               }}
             >
               ▶ Watch Trailer

@@ -23,8 +23,6 @@ export default async function AdminPage({ searchParams }) {
     .from("daily_stats")
     .select("*");
 
-  console.log("STATS ERROR =", statsError);
-  console.log("DAILY_STATS =", dailyStats);
 
   if (error) {
     return (
