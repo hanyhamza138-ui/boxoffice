@@ -135,54 +135,86 @@ export async function deleteDailyStat(formData) {
   redirect("/admin/analytics");
 }
 
-export async function addCinema(formData) {
-  const name = formData.get("name");
-  const city = formData.get("city");
+export async function addCinema(formData){
 
-  const { error } = await supabase
-    .from("cinemas")
-    .insert([
-      {
-        name,
-        city,
-      },
-    ]);
+const name=formData.get("name");
+const city=formData.get("city");
+const screens_count=Number(formData.get("screens_count") || 0);
+const seats_count=Number(formData.get("seats_count") || 0);
+const owner=formData.get("owner");
 
-  if (error) throw new Error(error.message);
 
-  redirect("/admin/cinemas");
+const {error}=await supabase
+.from("cinemas")
+.insert([
+{
+name,
+city,
+screens_count,
+seats_count,
+owner
 }
+]);
 
+
+if(error)
+throw new Error(error.message);
+
+
+redirect("/admin/Adminstats/cinemas");
+
+}
 export async function updateCinema(formData) {
   const id = Number(formData.get("id"));
 
   const name = formData.get("name");
   const city = formData.get("city");
+  const owner = formData.get("owner");
+  const screens_count = Number(formData.get("screens_count") || 0);
+  const seats_count = Number(formData.get("seats_count") || 0);
+  const status = formData.get("status");
+
 
   const { error } = await supabase
     .from("cinemas")
     .update({
       name,
       city,
+      owner,
+      screens_count,
+      seats_count,
+      status,
     })
     .eq("id", id);
 
-  if (error) throw new Error(error.message);
 
-  redirect("/admin/cinemas");
+  if (error)
+    throw new Error(error.message);
+
+
+  redirect("/admin/Adminstats/cinemas");
 }
 
+
 export async function deleteCinema(formData) {
+
   const id = Number(formData.get("id"));
+
 
   const { error } = await supabase
     .from("cinemas")
     .delete()
     .eq("id", id);
 
-  if (error) throw new Error(error.message);
 
-  redirect("/admin/cinemas");
+
+  if (error)
+    throw new Error(error.message);
+
+
+
+  redirect("/admin/Adminstats/cinemas");
+
 }
 export async function importDailyStats(rows) {
   const formattedRows = rows.map((row) => ({

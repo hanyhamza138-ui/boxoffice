@@ -464,7 +464,7 @@ whiteSpace: "nowrap",
           }}
         >
 
-          <Link href={`/admin/edit/${movie.id}`}>
+          <Link href={`/admin/movie/edit/${movie.id}`}>
             <button
               style={{
                 background:"#2563eb",

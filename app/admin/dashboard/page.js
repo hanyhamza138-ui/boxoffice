@@ -15,7 +15,7 @@ export default async function Dashboard() {
     .select("*");
 
   const cinemas = cinemasData || [];
-
+console.log("TOTAL CINEMAS =", cinemas.length);
 
   const { data: dailyStatsData } = await supabase
     .from("daily_stats")

@@ -12,7 +12,7 @@ export default function LoginPage() {
 
     // ⚠️ بسيط (هنطوره بعدين)
     if (password === "admin123") {
-      document.cookie = "admin=true; path=/";
+      document.cookie = "admin=true; path=/; max-age=86400";
       router.push("/admin");
     } else {
       alert("Wrong password");
