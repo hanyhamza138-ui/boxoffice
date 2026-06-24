@@ -1,6 +1,11 @@
 import { supabase } from "../../../../../../lib/supabase";
 import { updateCinema } from "../../../../../actions";
 import Link from "next/link";
+import { cookies } from "next/headers";
+
+import ar from "../../../../../../translations/ar";
+import en from "../../../../../../translations/en";
+
 
 
 export default async function EditCinema({ params }) {
@@ -8,7 +13,24 @@ export default async function EditCinema({ params }) {
 
   const { id } = await params;
 
+
   const cinemaId = Number(id);
+
+
+
+  const cookieStore = await cookies();
+
+
+  const language =
+    cookieStore.get("language")?.value || "en";
+
+
+  const t =
+    language === "ar"
+      ? ar
+      : en;
+
+
 
 
 
@@ -20,7 +42,10 @@ export default async function EditCinema({ params }) {
 
 
 
+
+
   if (error || !cinema) {
+
 
     return (
 
@@ -34,19 +59,36 @@ export default async function EditCinema({ params }) {
       >
 
         <h1>
-          Cinema Not Found
+
+          {
+            language==="ar"
+            ? "السينما غير موجودة"
+            : "Cinema Not Found"
+          }
+
         </h1>
 
 
+
         <Link href="/admin/Adminstats/cinemas">
-          Back
+
+          {
+            language==="ar"
+            ? "رجوع"
+            : "Back"
+          }
+
         </Link>
+
 
       </main>
 
     );
 
   }
+
+
+
 
 
 
@@ -64,14 +106,26 @@ export default async function EditCinema({ params }) {
 
 
 
+
       <h1
         style={{
           fontSize:36,
           marginBottom:30
         }}
       >
-        ✏️ Edit Cinema
+
+        ✏️
+
+        {
+          language==="ar"
+          ? "تعديل السينما"
+          : "Edit Cinema"
+        }
+
+
       </h1>
+
+
 
 
 
@@ -91,6 +145,7 @@ export default async function EditCinema({ params }) {
 
 
 
+
         <input
           type="hidden"
           name="id"
@@ -100,84 +155,164 @@ export default async function EditCinema({ params }) {
 
 
 
+
         <label>
-          Cinema Name
+
+          {
+            language==="ar"
+            ? "اسم السينما"
+            : "Cinema Name"
+          }
+
         </label>
 
+
         <input
+
           name="name"
+
           defaultValue={cinema.name || ""}
+
           style={input}
+
         />
 
 
 
 
 
+
         <label>
-          City
+
+          {
+            language==="ar"
+            ? "المدينة"
+            : "City"
+          }
+
         </label>
 
+
         <input
+
           name="city"
+
           defaultValue={cinema.city || ""}
+
           style={input}
+
         />
 
 
 
 
 
+
+
         <label>
-          Owner / Company
+
+          {
+            language==="ar"
+            ? "المالك / الشركة"
+            : "Owner / Company"
+          }
+
         </label>
 
 
+
         <input
+
           name="owner"
+
           defaultValue={cinema.owner || ""}
+
           style={input}
+
         />
 
 
 
 
 
+
+
+
         <label>
-          Screens Count
+
+          {
+            language==="ar"
+            ? "عدد الشاشات"
+            : "Screens Count"
+          }
+
         </label>
 
 
+
         <input
+
           type="number"
+
           name="screens_count"
+
           defaultValue={cinema.screens_count || 0}
+
           style={input}
+
         />
+
+
+
 
 
 
 
 
         <label>
-          Seats Count
+
+          {
+            language==="ar"
+            ? "عدد المقاعد"
+            : "Seats Count"
+          }
+
         </label>
 
 
+
         <input
+
           type="number"
+
           name="seats_count"
+
           defaultValue={cinema.seats_count || 0}
+
           style={input}
+
         />
+
+
+
 
 
 
 
 
         <button style={saveBtn}>
-          💾 Save Changes
+
+          💾
+
+          {
+            language==="ar"
+            ? "حفظ التعديلات"
+            : "Save Changes"
+          }
+
+
         </button>
+
 
 
 
@@ -187,13 +322,26 @@ export default async function EditCinema({ params }) {
 
 
 
+
       <Link href="/admin/Adminstats/cinemas">
 
+
         <button style={backBtn}>
-          ← Back To Cinemas
+
+          ←
+
+          {
+            language==="ar"
+            ? "العودة للسينمات"
+            : "Back To Cinemas"
+          }
+
+
         </button>
 
+
       </Link>
+
 
 
 
@@ -208,47 +356,75 @@ export default async function EditCinema({ params }) {
 
 
 
+
 const input = {
 
   display:"block",
+
   width:"100%",
+
   padding:12,
+
   marginTop:8,
+
   marginBottom:20,
+
   background:"#222",
+
   color:"white",
+
   border:"1px solid #444",
+
   borderRadius:8,
+
   fontSize:16
 
 };
+
+
 
 
 
 const saveBtn = {
 
   width:"100%",
+
   padding:14,
+
   background:"#2563eb",
+
   color:"white",
+
   border:"none",
+
   borderRadius:10,
+
   cursor:"pointer",
+
   fontWeight:"bold",
+
   fontSize:16
 
 };
 
 
 
+
+
 const backBtn = {
 
   marginTop:20,
+
   padding:"12px 20px",
+
   background:"#444",
+
   color:"white",
+
   border:"none",
+
   borderRadius:8,
+
   cursor:"pointer"
 
 };

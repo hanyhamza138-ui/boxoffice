@@ -2,150 +2,210 @@ import { supabase } from "../../../lib/supabase";
 import Link from "next/link";
 
 export default async function MoviePage({ params }) {
-  const { id } = await params;
+const { id } = await params;
 
-  const { data: movie, error } = await supabase
-    .from("movies")
-    .select("*")
-    .eq("id", id)
-    .single();
+const { data: movie, error } = await supabase
+.from("movies")
+.select("*")
+.eq("id", id)
+.single();
 
-  if (error || !movie) {
-    return (
-      <main
-        style={{
-          background: "#111",
-          color: "white",
-          minHeight: "100vh",
-          padding: 40,
-        }}
-      >
-        <h1>Movie Not Found</h1>
-      </main>
-    );
-  }
+if (error || !movie) {
+return (
+<main
+style={{
+background: "#111",
+color: "white",
+minHeight: "100vh",
+padding: 40,
+}}
+> <h1>Movie Not Found</h1> </main>
+);
+}
 
-  return (
-    <main
+return (
+<main
+style={{
+background: "#0b0b0b",
+color: "white",
+minHeight: "100vh",
+}}
+>
+<div
+style={{
+height: 450,
+backgroundImage: `url(${movie.poster})`,
+backgroundSize: "cover",
+backgroundPosition: "center",
+position: "relative",
+}}
+>
+<div
+style={{
+position: "absolute",
+inset: 0,
+background:
+"linear-gradient(to top,#0b0b0b,rgba(0,0,0,.3))",
+}}
+/>
+
+```
+    <div
       style={{
-        background: "#0b0b0b",
-        color: "white",
-        minHeight: "100vh",
-        padding: 40,
+        position: "absolute",
+        bottom: 40,
+        left: 40,
       }}
     >
-      <Link href="/">
-        <button
-          style={{
-            marginBottom: 25,
-            padding: "10px 18px",
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: "#333",
-            color: "white",
-          }}
-        >
-          ← Back
-        </button>
-      </Link>
-
-      <div
+      <h1
         style={{
-          display: "grid",
-          gridTemplateColumns: "350px 1fr",
-          gap: 40,
-          alignItems: "start",
+          fontSize: 60,
+          margin: 0,
         }}
       >
-        <img
-          src={
-            movie.poster ||
-            "https://placehold.co/350x500?text=No+Poster"
-          }
-          alt={movie.title}
+        {movie.title}
+      </h1>
+    </div>
+  </div>
+
+  <div style={{ padding: 40 }}>
+    <Link href="/">
+      <button
+        style={{
+          marginBottom: 25,
+          padding: "10px 18px",
+          borderRadius: 8,
+          border: "none",
+          cursor: "pointer",
+          background: "#333",
+          color: "white",
+        }}
+      >
+        ← Back
+      </button>
+    </Link>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns:
+          "repeat(auto-fit,minmax(320px,1fr))",
+        gap: 30,
+        alignItems: "start",
+      }}
+    >
+      <img
+        src={
+          movie.poster ||
+          "https://placehold.co/350x500?text=No+Poster"
+        }
+        alt={movie.title}
+        style={{
+          width: "100%",
+          maxWidth: 350,
+          borderRadius: 15,
+          boxShadow:
+            "0 10px 30px rgba(0,0,0,.5)",
+        }}
+      />
+
+      <div>
+        <div
           style={{
-            width: 350,
-            height: 520,
-            objectFit: "cover",
-            borderRadius: 15,
-            boxShadow: "0 10px 30px rgba(0,0,0,.5)",
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(180px,1fr))",
+            gap: 15,
           }}
-        />
+        >
+          <Card
+            title="💰 Revenue"
+            value={
+              movie.revenue?.toLocaleString() || 0
+            }
+          />
 
-        <div>
-          <h1
+          <Card
+            title="👥 Audience"
+            value={
+              movie.audience?.toLocaleString() || 0
+            }
+          />
+
+          <Card
+            title="🎬 Cinemas"
+            value={
+              movie.cinemas?.toLocaleString() || 0
+            }
+          />
+
+          <Card
+            title="🌍 Language"
+            value={movie.language || "N/A"}
+          />
+        </div>
+
+        {movie.trailer && (
+          <a
+            href={movie.trailer}
+            target="_blank"
+            rel="noreferrer"
             style={{
-              fontSize: 48,
-              marginTop: 0,
-              marginBottom: 20,
+              display: "inline-block",
+              marginTop: 25,
+              background: "#dc2626",
+              color: "white",
+              padding: "14px 22px",
+              borderRadius: 10,
+              textDecoration: "none",
+              fontWeight: "bold",
             }}
           >
-            {movie.title}
-          </h1>
+            ▶ Watch Trailer
+          </a>
+        )}
 
-          <div
-            style={{
-              background: "#171717",
-              padding: 25,
-              borderRadius: 15,
-              maxWidth: 700,
-            }}
+        <div style={{ marginTop: 20 }}>
+          <Link
+            href={`/admin/movie/edit/${movie.id}`}
           >
-            <p>
-              💰 Revenue:
-              <strong>
-                {" "}
-                {(movie.revenue || 0).toLocaleString()}
-              </strong>
-            </p>
-
-            <p>
-              👥 Audience:
-              <strong>
-                {" "}
-                {(movie.audience || 0).toLocaleString()}
-              </strong>
-            </p>
-
-            <p>
-              🎬 Cinemas:
-              <strong>
-                {" "}
-                {(movie.cinemas || 0).toLocaleString()}
-              </strong>
-            </p>
-
-            <p>
-              🌍 Language:
-              <strong>
-                {" "}
-                {movie.language || "N/A"}
-              </strong>
-            </p>
-          </div>
-
-          {movie.trailer && (
-            <a
-              href={movie.trailer}
-              target="_blank"
-              rel="noreferrer"
+            <button
               style={{
-                display: "inline-block",
-                marginTop: 20,
-                background: "#dc2626",
+                background: "#2563eb",
                 color: "white",
+                border: "none",
                 padding: "12px 20px",
-                borderRadius: 8,
-                textDecoration: "none",
-                fontWeight: "bold",
+                borderRadius: 10,
+                cursor: "pointer",
               }}
             >
-              ▶ Watch Trailer
-            </a>
-          )}
+              ✏️ Edit Movie
+            </button>
+          </Link>
         </div>
       </div>
-    </main>
-  );
+    </div>
+  </div>
+</main>
+
+);
+}
+
+function Card({ title, value }) {
+return (
+<div
+style={{
+background: "#171717",
+padding: 20,
+borderRadius: 15,
+}}
+>
+<h3 style={{ marginTop: 0 }}>
+{title} </h3>
+
+```
+  <h2>{value}</h2>
+</div>
+
+);
 }
