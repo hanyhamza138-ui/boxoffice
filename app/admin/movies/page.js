@@ -179,6 +179,8 @@ export default async function Page({ searchParams }) {
 
 
 
+
+
       <table
 
         style={{
@@ -194,9 +196,20 @@ export default async function Page({ searchParams }) {
 
           <tr>
 
+
             <th style={thStyle}>
               ID
             </th>
+
+
+            <th style={thStyle}>
+              {
+                language==="ar"
+                ? "الكود"
+                : "Code"
+              }
+            </th>
+
 
 
             <th style={thStyle}>
@@ -252,6 +265,12 @@ export default async function Page({ searchParams }) {
 
               <td style={tdStyle}>
                 {movie.id}
+              </td>
+
+
+
+              <td style={tdStyle}>
+                {movie.code || "-"}
               </td>
 
 
@@ -383,6 +402,7 @@ export default async function Page({ searchParams }) {
 
 
 
+
       <div
 
         style={{
@@ -467,7 +487,7 @@ export default async function Page({ searchParams }) {
             ?"التالي"
             :"Next"
           }
-          
+
           ➡
 
         </a>
