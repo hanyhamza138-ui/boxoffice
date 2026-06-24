@@ -1,7 +1,29 @@
 import { addCinema } from "../../../actions";
+import { cookies } from "next/headers";
 
-export default function AddCinemaPage() {
+import ar from "../../../../translations/ar";
+import en from "../../../../translations/en";
+
+
+export default async function AddCinemaPage() {
+
+
+  const cookieStore = await cookies();
+
+
+  const language =
+    cookieStore.get("language")?.value || "en";
+
+
+  const t =
+    language === "ar"
+      ? ar
+      : en;
+
+
+
   return (
+
     <main
       style={{
         background: "#111",
@@ -10,14 +32,21 @@ export default function AddCinemaPage() {
         padding: 40,
       }}
     >
+
+
       <h1
         style={{
           fontSize: 40,
           marginBottom: 30,
         }}
       >
-        🎥 Add Cinema
+
+        🎥 {t.addCinema}
+
       </h1>
+
+
+
 
       <form
         action={addCinema}
@@ -28,39 +57,88 @@ export default function AddCinemaPage() {
           maxWidth: 600,
         }}
       >
+
+
+
         <input
           name="name"
-          placeholder="Cinema Name"
+          placeholder={t.cinemaName}
           required
-          style={{
-            padding: 12,
-            borderRadius: 8,
-          }}
+          style={inputStyle}
         />
+
+
 
         <input
           name="city"
-          placeholder="City"
+          placeholder={t.city}
           required
-          style={{
-            padding: 12,
-            borderRadius: 8,
-          }}
+          style={inputStyle}
         />
+
+
+
+        <input
+          name="owner"
+          placeholder={t.owner}
+          style={inputStyle}
+        />
+
+
+
+        <input
+          name="screens_count"
+          type="number"
+          placeholder={t.screens}
+          style={inputStyle}
+        />
+
+
+
+        <input
+          name="seats_count"
+          type="number"
+          placeholder={t.seats}
+          style={inputStyle}
+        />
+
+
 
         <button
           type="submit"
           style={{
-            padding: 14,
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            fontWeight: "bold",
+            padding:14,
+            borderRadius:8,
+            border:"none",
+            cursor:"pointer",
+            fontWeight:"bold",
+            background:"#2563eb",
+            color:"white",
           }}
         >
-          Save Cinema
+
+          💾 {t.saveChanges}
+
         </button>
+
+
+
       </form>
+
+
     </main>
+
   );
 }
+
+
+
+const inputStyle = {
+
+  padding:12,
+  borderRadius:8,
+  background:"#222",
+  color:"white",
+  border:"1px solid #444",
+
+};
