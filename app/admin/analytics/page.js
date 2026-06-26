@@ -1,194 +1,298 @@
 import { supabase } from "../../../lib/supabase";
-
-export default async function AnalyticsPage() {
-
-  const { data: dailyStatsData } = await supabase
-    .from("daily_stats")
-    .select("*")
-    .order("date", { ascending: false });
-
-
-  const { data: cinemasData } = await supabase
-    .from("cinemas")
-    .select("*");
+import AnalyticsFilter from "./AnalyticsFilter";
+import AnalyticsCharts from "./AnalyticsCharts";
+import StatsCards from "../../../components/StatsCards";
+import TopMovies from "../../../components/TopMovies";
+export default async function AnalyticsPage({
+  searchParams,
+}) {
 
 
-  const { data: moviesData } = await supabase
-    .from("movies")
-    .select("*");
+  const params = await searchParams;
 
 
-  const dailyStats = dailyStatsData || [];
-  const cinemas = cinemasData || [];
-  const movies = moviesData || [];
-
-
-  const totalRevenue = dailyStats.reduce(
-    (sum, item) => sum + Number(item.revenue || 0),
-    0
-  );
-
-
-  const totalAudience = dailyStats.reduce(
-    (sum, item) => sum + Number(item.audience || 0),
-    0
-  );
-
-
-  const totalRecords = dailyStats.length;
-  const totalCinemas = cinemas.length;
-
-
-  const movieMap = {};
-
-  movies.forEach((movie) => {
-    movieMap[String(movie.id)] = movie.title;
-  });
-
-
-  const cinemaMap = {};
-
-  cinemas.forEach((cinema) => {
-    cinemaMap[String(cinema.id)] = {
-      name: cinema.name,
-      city: cinema.city,
-    };
-  });
-
-
-  const movieRevenueMap = {};
-
-  dailyStats.forEach((item) => {
-
-    const key = String(item.movie_id);
-
-    movieRevenueMap[key] =
-      (movieRevenueMap[key] || 0) +
-      Number(item.revenue || 0);
-
-  });
-
-
-  const rankedMovies = movies
-    .map((movie) => ({
-      ...movie,
-      revenue:
-        movieRevenueMap[String(movie.id)] || 0,
-    }))
-    .sort((a,b)=>b.revenue-a.revenue);
+  const today =
+    new Date()
+    .toISOString()
+    .split("T")[0];
 
 
 
-  const cinemaRevenueMap = {};
-
-  dailyStats.forEach((item)=>{
-
-    const key = String(item.cinema_id);
-
-    cinemaRevenueMap[key] =
-      (cinemaRevenueMap[key] || 0) +
-      Number(item.revenue || 0);
-
-  });
+  const defaultFrom =
+    new Date(
+      Date.now() -
+      30 * 24 * 60 * 60 * 1000
+    )
+    .toISOString()
+    .split("T")[0];
 
 
 
-  const rankedCinemas = cinemas
-    .map((cinema)=>({
-      ...cinema,
-      revenue:
-        cinemaRevenueMap[String(cinema.id)] || 0,
-    }))
-    .sort((a,b)=>b.revenue-a.revenue);
+  const fromDate =
+    params?.from || defaultFrom;
+
+
+  const toDate =
+    params?.to || today;
 
 
 
-  const topMovie = rankedMovies[0];
-  const topCinema = rankedCinemas[0];
+  const { data, error } =
+    await supabase.rpc(
+      "get_analytics_summary",
+      {
+        p_from_date: fromDate,
+        p_to_date: toDate,
+      }
+    );
+
+
+
+  if (error) {
+
+    console.log(
+      "ANALYTICS ERROR",
+      error
+    );
+
+  }
+
+
+
+  const totals =
+    data?.totals || {};
+
+
+  const movies =
+    data?.movies || [];
+console.log("MOVIES DATA", movies);
+
+  const cinemas =
+    data?.cinemas || [];
+
+
+  const daily =
+    data?.daily || [];
+
+
+
+  const topMovie =
+    movies[0];
+
+
+  const topCinema =
+    cinemas[0];
+
 
 
   return (
+
     <main
       style={{
         background:"#111",
         color:"white",
         minHeight:"100vh",
-        padding:40
+        padding:"40px",
       }}
     >
 
-      <h1>📊 Analytics Dashboard</h1>
 
+      <h1>
+        📊 Analytics Dashboard
+      </h1>
+            <AnalyticsFilter />
 
-      <h2>
-        💰 Revenue: {totalRevenue.toLocaleString()}
-      </h2>
-
-      <h2>
-        👥 Audience: {totalAudience.toLocaleString()}
-      </h2>
-
-      <h2>
-        🎥 Cinemas: {totalCinemas}</h2>
-
-
-      <h2>
-        🏆 Top Movie:
-        {" "}
-        {topMovie?.title || "-"}
-      </h2>
-
-
-      <h2>
-        🎬 Top Cinema:
-        {" "}
-        {topCinema?.name || "-"}
-      </h2>
-
-
-      <h2 style={{marginTop:40}}>
-        Latest Stats
-      </h2>
-
-
-      <table
+      <div
         style={{
-          width:"100%",
-          background:"#1c1c1c"
+          background:"#1c1c1c",
+          padding:"15px",
+          borderRadius:"10px",
+          marginTop:"20px",
         }}
       >
 
-        <tbody>
+        الفترة:
 
-        {dailyStats.slice(0,20).map((row)=>(
+        <br/>
 
-          <tr key={row.id}>
+        من:
+        {" "}
+        {fromDate}
 
-            <td>
-              {movieMap[String(row.movie_id)] || "Unknown"}
-            </td>
+        <br/>
 
-            <td>
-              {cinemaMap[String(row.cinema_id)]?.name || "Unknown"}
-            </td>
+        إلى:
+        {" "}
+        {toDate}
 
-            <td>
-              {(row.revenue || 0).toLocaleString()}
-            </td>
+       <Card
+        title="🎬 أعلى سينما"
+        value={topCinema?.name || "لا توجد"}
+/>
+     </div>
 
-            <td>
-              {(row.audience || 0).toLocaleString()}
-            </td>
+      <AnalyticsCharts
+        daily={daily}
+      />
+      <TopMovies
+        movies={movies}
+       />
+      <Section title="🏢 ترتيب السينمات">
 
-          </tr>
+        {
+          cinemas.map(
+            (cinema,index)=>(
 
-        ))}
+              <Row
+                key={cinema.cinema_id}
+                left={
+                  <>
+                  #{index+1}{" "}
+                  {cinema.code}
+                  {" - "}
+                  {cinema.name}
+                  </>
+                }
+                right={
+                  Number(
+                    cinema.revenue || 0
+                  ).toLocaleString()
+                }
+              />
 
-        </tbody>
+            )
+          )
+        }
 
-      </table>
+      </Section>
+
+
+
+
+
+      <Section title="📅 الإيراد اليومي">
+
+        {
+          daily.map(
+            (item,index)=>(
+
+              <Row
+                key={index}
+                left={item.date}
+                right={
+                  Number(
+                    item.revenue || 0
+                  ).toLocaleString()
+                }
+              />
+
+            )
+          )
+        }
+
+      </Section>
 
 
     </main>
+
   );
+
+}
+
+
+
+
+function Card({
+  title,
+  value
+}){
+
+return (
+
+<div
+style={{
+background:"#1c1c1c",
+padding:"20px",
+borderRadius:"10px",
+}}
+>
+
+<h3>
+{title}
+</h3>
+
+<h2>
+{value}
+</h2>
+
+</div>
+
+);
+
+}
+
+
+
+
+
+function Section({
+title,
+children
+}){
+
+return (
+
+<div
+style={{
+background:"#1c1c1c",
+padding:"20px",
+borderRadius:"10px",
+marginTop:"30px",
+}}
+>
+
+<h2>
+{title}
+</h2>
+
+{children}
+
+</div>
+
+);
+
+}
+
+
+
+
+
+function Row({
+left,
+right
+}){
+
+return (
+
+<div
+style={{
+display:"flex",
+justifyContent:"space-between",
+padding:"10px 0",
+borderBottom:"1px solid #333",
+}}
+>
+
+<div>
+{left}
+</div>
+
+<div>
+{right}
+</div>
+
+</div>
+
+);
+
 }

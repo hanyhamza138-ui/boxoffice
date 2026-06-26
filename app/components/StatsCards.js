@@ -1,47 +1,93 @@
-export default function StatsCards() {
+export default function StatsCards({
+  totals = {}
+}) {
+
+
   return (
+
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3,1fr)",
-        gap: 20,
+        display:"grid",
+        gridTemplateColumns:
+        "repeat(auto-fit,minmax(220px,1fr))",
+        gap:20,
       }}
     >
-      <div
-        style={{
-          background: "#1c1c1c",
-          padding: 20,
-          borderRadius: 12,
-        }}
-      >
-        <h3>💰 Revenue</h3>
 
-        <p>$120,000</p>
-      </div>
 
-      <div
-        style={{
-          background: "#1c1c1c",
-          padding: 20,
-          borderRadius: 12,
-        }}
-      >
-        <h3>🎟 Tickets</h3>
+      <Card
+        title="💰 Revenue"
+        value={
+          Number(
+            totals.revenue || 0
+          ).toLocaleString()
+        }
+      />
 
-        <p>32,000</p>
-      </div>
 
-      <div
-        style={{
-          background: "#1c1c1c",
-          padding: 20,
-          borderRadius: 12,
-        }}
-      >
-        <h3>🍿 Visitors</h3>
 
-        <p>14,500</p>
-      </div>
+      <Card
+        title="🎟 Tickets"
+        value={
+          Number(
+            totals.audience || 0
+          ).toLocaleString()
+        }
+      />
+
+
+
+      <Card
+        title="📝 Records"
+        value={
+          totals.records || 0
+        }
+      />
+
+
     </div>
+
   );
+
+}
+
+
+
+
+
+function Card({
+  title,
+  value
+}){
+
+
+  return (
+
+    <div
+      style={{
+        background:"#1c1c1c",
+        padding:20,
+        borderRadius:12,
+      }}
+    >
+
+      <h3>
+        {title}
+      </h3>
+
+
+      <p
+        style={{
+          fontSize:24,
+          fontWeight:"bold",
+        }}
+      >
+        {value}
+      </p>
+
+
+    </div>
+
+  );
+
 }

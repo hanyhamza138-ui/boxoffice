@@ -1,24 +1,63 @@
-export default function TopMovies() {
+export default function TopMovies({
+  movies = []
+}) {
   return (
     <div
       style={{
-        background: "#1c1c1c",
-        padding: 20,
-        borderRadius: 12,
+        background:"#1c1c1c",
+        padding:20,
+        borderRadius:12,
       }}
     >
-      <h2>🎬 Top Movies</h2>
+
+      <h2>
+        🎬 Top Movies
+      </h2>
 
       <ul
         style={{
-          marginTop: 20,
-          lineHeight: 2,
+          marginTop:20,
+          lineHeight:2,
+          listStyle:"none",
+          padding:0,
         }}
       >
-        <li>Mission Impossible</li>
-        <li>Avengers Endgame</li>
-        <li>Oppenheimer</li>
+
+        {
+          movies
+          .slice(0,10)
+          .map(
+            (movie,index)=>(
+
+              <li
+                key={movie.movie_id}
+              >
+
+                #{index + 1}{" "}
+                {movie.code}
+                {" - "}
+                {movie.title}
+
+                {" | "}
+
+                {
+                  Number(
+                    movie.revenue || 0
+                  ).toLocaleString()
+                }
+
+              </li>
+
+            )
+          )
+        }
+
+
       </ul>
+
+
     </div>
+
   );
+
 }

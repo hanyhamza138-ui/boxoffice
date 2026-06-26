@@ -5,417 +5,444 @@ import {
   reopenWorkDay,
 } from "../../../actions/workday";
 
+
 export default async function WorkDayDetailsPage({
   params,
 }) {
+
   const { id } = await params;
 
-  const { data: day } = await supabase
-    .from("boxoffice_days")
-    .select("*")
-    .eq("id", id)
-    .single();
 
-  const { data: cinemas } = await supabase
-    .from("cinemas")
-    .select("*")
-    .order("name");
+  const { data: day } =
+    await supabase
+      .from("boxoffice_days")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-  const { data: reports } = await supabase
-    .from("boxoffice_reports")
-    .select(`
-      cinema_id,
-      movie_id,
-      tickets,
-      revenue,
-      movies (
-        id,
-        title,
-        code
-      )
-    `)
-    .eq("day_id", id);
 
-  const completedCinemaIds = [
-    ...new Set(
-      (reports || []).map(
-        (r) => r.cinema_id
-      )
-    ),
-  ];
+  const { data: cinemas } =
+    await supabase
+      .from("cinemas")
+      .select("*")
+      .order("name");
 
-  const totalRevenue = (reports || []).reduce(
-    (sum, row) =>
-      sum + Number(row.revenue || 0),
-    0
-  );
 
-  const totalTickets = (reports || []).reduce(
-    (sum, row) =>
-      sum + Number(row.tickets || 0),
-    0
-  );
+  const { data: summary } =
+    await supabase.rpc(
+      "get_workday_summary",
+      {
+        p_day_id: Number(id),
+      }
+    );
 
-  const movieStats = {};
 
-  (reports || []).forEach((row) => {
-    const movieId = row.movie_id;
+  const totals =
+    summary?.totals || {};
 
-    if (!movieStats[movieId]) {
-      movieStats[movieId] = {
-        title:
-          row.movies?.title ||
-          "غير معروف",
-        code:
-          row.movies?.code || "",
-        revenue: 0,
-        tickets: 0,
-      };
-    }
+  const rankedMovies =
+    summary?.movies || [];
 
-    movieStats[movieId].revenue +=
-      Number(row.revenue || 0);
+  const rankedCinemas =
+    summary?.cinemas || [];
 
-    movieStats[movieId].tickets +=
-      Number(row.tickets || 0);
-  });
 
-  const rankedMovies = Object.values(
-    movieStats
-  ).sort(
-    (a, b) =>
-      b.revenue - a.revenue
-  );
-
-  const cinemaStats = {};
-
-  (reports || []).forEach((row) => {
-    if (!cinemaStats[row.cinema_id]) {
-      const cinema = cinemas?.find(
-        (c) => c.id === row.cinema_id
-      );
-
-      cinemaStats[row.cinema_id] = {
-        name:
-          cinema?.name ||
-          "غير معروف",
-        code:
-          cinema?.code || "",
-        revenue: 0,
-      };
-    }
-
-    cinemaStats[row.cinema_id].revenue +=
-      Number(row.revenue || 0);
-  });
-
-  const rankedCinemas = Object.values(
-    cinemaStats
-  ).sort(
-    (a, b) =>
-      b.revenue - a.revenue
+  const completedCinemaIds =
+  new Set(
+    rankedCinemas.map(
+      (c) => c.cinema_id
+    )
   );
 
   return (
     <main
       style={{
-        background: "#111",
-        color: "white",
-        minHeight: "100vh",
-        padding: "30px",
+        background:"#111",
+        color:"white",
+        minHeight:"100vh",
+        padding:"30px",
       }}
     >
-      <h1>📅 يوم العمل</h1>
+
+      <h1>
+        📅 يوم العمل
+      </h1>
+
 
       <div
         style={{
-          background: "#1c1c1c",
-          padding: "20px",
-          borderRadius: "10px",
-          marginBottom: "25px",
+          background:"#1c1c1c",
+          padding:"20px",
+          borderRadius:"10px",
+          marginBottom:"25px",
         }}
       >
-        <h2>{day?.work_date}</h2>
+
+        <h2>
+          {day?.work_date}
+        </h2>
+
 
         <p>
           الحالة{" "}
-          {day?.status === "open"
+          {
+            day?.status === "open"
             ? "🟢 مفتوح"
-            : "🔴 مغلق"}
+            : "🔴 مغلق"
+          }
         </p>
 
-        <div
-          style={{
-            marginTop: "15px",
-          }}
-        >
-          {day?.status === "open" ? (
+
+        {
+          day?.status === "open"
+          ? (
             <form
-              action={async () => {
+              action={async()=>{
                 "use server";
                 await closeWorkDay(id);
               }}
             >
+
               <button
-                type="submit"
                 style={{
-                  background: "#dc2626",
-                  color: "white",
-                  border: "none",
-                  padding:
-                    "12px 20px",
-                  borderRadius:
-                    "8px",
-                  cursor: "pointer",
+                  background:"#dc2626",
+                  color:"white",
+                  border:"none",
+                  padding:"12px 20px",
+                  borderRadius:"8px",
                 }}
               >
                 🔒 إغلاق يوم العمل
               </button>
+
             </form>
-          ) : (
+          )
+          :
+          (
             <form
-              action={async () => {
+              action={async()=>{
                 "use server";
                 await reopenWorkDay(id);
               }}
             >
+
               <button
-                type="submit"
                 style={{
-                  background: "#16a34a",
-                  color: "white",
-                  border: "none",
-                  padding:
-                    "12px 20px",
-                  borderRadius:
-                    "8px",
-                  cursor: "pointer",
+                  background:"#16a34a",
+                  color:"white",
+                  border:"none",
+                  padding:"12px 20px",
+                  borderRadius:"8px",
                 }}
               >
                 🔓 إعادة فتح اليوم
               </button>
+
             </form>
-          )}
-        </div>
+          )
+        }
+
       </div>
+
+
 
       <div
         style={{
-          display: "grid",
+          display:"grid",
           gridTemplateColumns:
-            "repeat(auto-fit,minmax(220px,1fr))",
-          gap: "15px",
-          marginBottom: "30px",
+          "repeat(auto-fit,minmax(220px,1fr))",
+          gap:"15px",
+          marginBottom:"30px",
         }}
       >
-        <div
-          style={{
-            background: "#1c1c1c",
-            padding: "20px",
-            borderRadius: "10px",
-          }}
-        >
-          <h3>💰 إجمالي الإيراد</h3>
-          <h2>
-            {totalRevenue.toLocaleString()}
-          </h2>
-        </div>
 
-        <div
-          style={{
-            background: "#1c1c1c",
-            padding: "20px",
-            borderRadius: "10px",
-          }}
-        >
-          <h3>🎟️ إجمالي الرواد</h3>
-          <h2>
-            {totalTickets.toLocaleString()}
-          </h2>
-        </div>
+        <Box
+          title="💰 إجمالي الإيراد"
+          value={
+            Number(
+              totals.revenue || 0
+            ).toLocaleString()
+          }
+        />
 
-        <div
-          style={{
-            background: "#1c1c1c",
-            padding: "20px",
-            borderRadius: "10px",
-          }}
-        >
-          <h3>🏢 السينمات المنتهية</h3>
-          <h2>
-            {completedCinemaIds.length}
-          </h2>
-        </div>
+
+        <Box
+          title="🎟️ إجمالي الرواد"
+          value={
+            Number(
+              totals.tickets || 0
+            ).toLocaleString()
+          }
+        />
+
+
+        <Box
+          title="🏢 السينمات"
+          value={
+            totals.cinemas || 0
+          }
+        />
+
       </div>
 
-      <div
-        style={{
-          background: "#1c1c1c",
-          padding: "20px",
-          borderRadius: "10px",
-          marginBottom: "30px",
-        }}
-      >
-        <h2>🏆 ترتيب الأفلام</h2>
 
-        {rankedMovies.length === 0 ? (
-          <p>لا توجد بيانات بعد</p>
-        ) : (
+
+
+      <Section title="🏆 ترتيب الأفلام">
+
+        {
           rankedMovies.map(
-            (movie, index) => (
-              <div
-                key={index}
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  padding: "10px 0",
-                  borderBottom:
-                    "1px solid #333",
-                }}
-              >
-                <div>
-                  <strong>
-                    #{index + 1}
-                  </strong>{" "}
-                  {movie.code} -{" "}
+            (movie,index)=>(
+
+              <Row
+                key={movie.movie_id}
+                left={
+                  <>
+                  #{index+1}{" "}
+                  {movie.code}
+                  {" - "}
                   {movie.title}
-                </div>
+                  </>
+                }
+                right={
+                  Number(
+                    movie.revenue || 0
+                  ).toLocaleString()
+                }
+              />
 
-                <div>
-                  {movie.revenue.toLocaleString()}
-                </div>
-              </div>
             )
           )
-        )}
-      </div>
+        }
 
-      <div
-        style={{
-          background: "#1c1c1c",
-          padding: "20px",
-          borderRadius: "10px",
-          marginBottom: "30px",
-        }}
-      >
-        <h2>🏢 ترتيب السينمات</h2>
+      </Section>
 
-        {rankedCinemas.length === 0 ? (
-          <p>لا توجد بيانات بعد</p>
-        ) : (
+
+
+
+
+      <Section title="🏢 ترتيب السينمات">
+
+        {
           rankedCinemas.map(
-            (cinema, index) => (
-              <div
-                key={index}
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  padding: "10px 0",
-                  borderBottom:
-                    "1px solid #333",
-                }}
-              >
-                <div>
-                  <strong>
-                    #{index + 1}
-                  </strong>{" "}
-                  {cinema.code} -{" "}
-                  {cinema.name}
-                </div>
+            (cinema,index)=>(
 
-                <div>
-                  {cinema.revenue.toLocaleString()}
-                </div>
-              </div>
+              <Row
+                key={cinema.cinema_id}
+                left={
+                  <>
+                  #{index+1}{" "}
+                  {cinema.code}
+                  {" - "}
+                  {cinema.name}
+                  </>
+                }
+                right={
+                  Number(
+                    cinema.revenue || 0
+                  ).toLocaleString()
+                }
+              />
+
             )
           )
-        )}
-      </div>
+        }
 
-      <h2>🎬 السينمات</h2>
+      </Section>
+
+
+
+
+
+
+      <h2>
+        🎬 السينمات
+      </h2>
+
 
       <div
         style={{
-          display: "grid",
-          gap: "15px",
+          display:"grid",
+          gap:"15px",
         }}
       >
-        {cinemas?.map((cinema) => {
-          const completed =
-            completedCinemaIds.includes(
-              cinema.id
-            );
 
-          return (
+      {
+        cinemas?.map(
+          (cinema)=>(
+
             <div
               key={cinema.id}
               style={{
-                background: "#1c1c1c",
-                padding: "15px",
-                borderRadius: "10px",
-                display: "flex",
+                background:"#1c1c1c",
+                padding:"15px",
+                borderRadius:"10px",
+                display:"flex",
                 justifyContent:
-                  "space-between",
-                alignItems: "center",
+                "space-between",
+                alignItems:"center",
               }}
             >
+
               <div>
+
                 <h3>
-                  {cinema.code} -{" "}
+                  {cinema.code}
+                  {" - "}
                   {cinema.name}
                 </h3>
 
+
                 <p>
-                  {completed
-                    ? "✅ تم الإدخال"
-                    : "⏳ لم يتم الإدخال"}
+                {
+                  completedCinemaIds.has(
+                    cinema.id
+                  )
+                  
+                  ?
+                  "✅ تم الإدخال"
+                  :
+                  "⏳ لم يتم الإدخال"
+                }
                 </p>
+
               </div>
 
-              {day?.status === "open" ? (
+
+              {
+                day?.status === "open"
+                ?
                 <Link
-                  href={`/admin/work-day/${id}/cinema/${cinema.id}`}
+                href={`/admin/work-day/${id}/cinema/${cinema.id}`}
                 >
+
                   <button
                     style={{
-                      background:
-                        "#2563eb",
-                      color: "white",
-                      border: "none",
-                      padding:
-                        "10px 16px",
-                      borderRadius:
-                        "8px",
-                      cursor:
-                        "pointer",
+                      background:"#2563eb",
+                      color:"white",
+                      border:"none",
+                      padding:"10px 16px",
+                      borderRadius:"8px",
                     }}
                   >
                     إدارة السينما
                   </button>
+
                 </Link>
-              ) : (
+
+                :
+
                 <button
                   disabled
-                  style={{
-                    background:
-                      "#444",
-                    color: "#999",
-                    border: "none",
-                    padding:
-                      "10px 16px",
-                    borderRadius:
-                      "8px",
-                  }}
                 >
                   🔒 مغلق
                 </button>
-              )}
+              }
+
+
             </div>
-          );
-        })}
+
+          )
+        )
+      }
+
+
       </div>
+
+
     </main>
   );
+}
+
+
+
+
+function Box({
+  title,
+  value
+}){
+
+return (
+
+<div
+style={{
+background:"#1c1c1c",
+padding:"20px",
+borderRadius:"10px",
+}}
+>
+
+<h3>{title}</h3>
+
+<h2>{value}</h2>
+
+</div>
+
+);
+
+}
+
+
+
+
+
+function Section({
+title,
+children
+}){
+
+return (
+
+<div
+style={{
+background:"#1c1c1c",
+padding:"20px",
+borderRadius:"10px",
+marginBottom:"30px",
+}}
+>
+
+<h2>{title}</h2>
+
+{children}
+
+</div>
+
+);
+
+}
+
+
+
+
+function Row({
+left,
+right
+}){
+
+return (
+
+<div
+style={{
+display:"flex",
+justifyContent:"space-between",
+padding:"10px 0",
+borderBottom:"1px solid #333",
+}}
+>
+
+<div>
+{left}
+</div>
+
+
+<div>
+{right}
+</div>
+
+
+</div>
+
+);
+
 }
