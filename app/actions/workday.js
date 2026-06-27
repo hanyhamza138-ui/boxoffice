@@ -145,16 +145,12 @@ export async function reopenWorkDay(dayId) {
 
   try {
 
-    const { error } =
-      await supabase
-        .from("boxoffice_days")
-        .update({
-          status: "open",
-        })
-        .eq(
-          "id",
-          Number(dayId)
-        );
+   const { error } = await supabase
+  .from("boxoffice_reports")
+  .upsert(payload, {
+    onConflict:
+      "day_id,movie_id,cinema_id,version_id",
+  });
 
     if (error) {
       throw new Error(
