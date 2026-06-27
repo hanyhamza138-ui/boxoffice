@@ -3,6 +3,9 @@ import AnalyticsFilter from "./AnalyticsFilter";
 import AnalyticsCharts from "./AnalyticsCharts";
 import StatsCards from "../../../components/StatsCards";
 import TopMovies from "../../../components/TopMovies";
+import TopCinemas from "../../../components/TopCinemas";
+import DailyRevenue from "../../../components/DailyRevenue";
+import ExportButtons from "./ExportButtons";
 export default async function AnalyticsPage({
   searchParams,
 }) {
@@ -76,15 +79,6 @@ console.log("MOVIES DATA", movies);
 
 
 
-  const topMovie =
-    movies[0];
-
-
-  const topCinema =
-    cinemas[0];
-
-
-
   return (
 
     <main
@@ -101,7 +95,19 @@ console.log("MOVIES DATA", movies);
         📊 Analytics Dashboard
       </h1>
             <AnalyticsFilter />
-
+            <ExportButtons
+  fromDate={fromDate}
+  toDate={toDate}
+  totals={totals}
+  movies={movies}
+  cinemas={cinemas}
+  daily={daily}
+/>
+<StatsCards
+  totals={totals}
+  movies={movies}
+  cinemas={cinemas}
+/>
       <div
         style={{
           background:"#1c1c1c",
@@ -125,10 +131,6 @@ console.log("MOVIES DATA", movies);
         {" "}
         {toDate}
 
-       <Card
-        title="🎬 أعلى سينما"
-        value={topCinema?.name || "لا توجد"}
-/>
      </div>
 
       <AnalyticsCharts
@@ -137,68 +139,18 @@ console.log("MOVIES DATA", movies);
       <TopMovies
         movies={movies}
        />
-      <Section title="🏢 ترتيب السينمات">
-
-        {
-          cinemas.map(
-            (cinema,index)=>(
-
-              <Row
-                key={cinema.cinema_id}
-                left={
-                  <>
-                  #{index+1}{" "}
-                  {cinema.code}
-                  {" - "}
-                  {cinema.name}
-                  </>
-                }
-                right={
-                  Number(
-                    cinema.revenue || 0
-                  ).toLocaleString()
-                }
-              />
-
-            )
-          )
-        }
-
-      </Section>
-
-
-
-
-
-      <Section title="📅 الإيراد اليومي">
-
-        {
-          daily.map(
-            (item,index)=>(
-
-              <Row
-                key={index}
-                left={item.date}
-                right={
-                  Number(
-                    item.revenue || 0
-                  ).toLocaleString()
-                }
-              />
-
-            )
-          )
-        }
-
-      </Section>
-
+      <TopCinemas
+  cinemas={cinemas}
+/>
+      <DailyRevenue
+  daily={daily}
+/>
 
     </main>
 
   );
 
 }
-
 
 
 
@@ -224,72 +176,6 @@ borderRadius:"10px",
 <h2>
 {value}
 </h2>
-
-</div>
-
-);
-
-}
-
-
-
-
-
-function Section({
-title,
-children
-}){
-
-return (
-
-<div
-style={{
-background:"#1c1c1c",
-padding:"20px",
-borderRadius:"10px",
-marginTop:"30px",
-}}
->
-
-<h2>
-{title}
-</h2>
-
-{children}
-
-</div>
-
-);
-
-}
-
-
-
-
-
-function Row({
-left,
-right
-}){
-
-return (
-
-<div
-style={{
-display:"flex",
-justifyContent:"space-between",
-padding:"10px 0",
-borderBottom:"1px solid #333",
-}}
->
-
-<div>
-{left}
-</div>
-
-<div>
-{right}
-</div>
 
 </div>
 

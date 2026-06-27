@@ -1,36 +1,77 @@
 "use client";
 
-import { useState } from "react";
-import { saveWorkDayRevenue } from "../../../../../actions/workday";
+import { useEffect, useState } from "react";
+import {
+  saveWorkDayRevenue,
+  deleteWorkDayReport,
+} from "../../../../../actions/workday";
 
 export default function WorkDayForm({
   dayId,
   cinemaId,
   movies,
   versions,
+  existingReports = [],
 }) {
+
   const [rows, setRows] = useState([
-    {
-      movieId: "",
-      versionId: "",
-      tickets: "",
-      revenue: "",
-    },
-  ]);
+  {
+    id: null,
+    movieId: "",
+    versionId: "",
+    tickets: "",
+    revenue: "",
+  },
+]);
+
+const [deletedIds, setDeletedIds] = useState([]);
+  useEffect(() => {
+
+    if (!existingReports.length) {
+      return;
+    }
+
+    setRows(
+  existingReports
+    .filter(
+      (report) =>
+        !deletedIds.includes(report.id)
+    )
+    .map((report) => ({
+      id: report.id,
+      movieId: String(report.movie_id),
+      versionId: report.version_id
+        ? String(report.version_id)
+        : "",
+      tickets: String(report.tickets ?? ""),
+      revenue: String(report.revenue ?? ""),
+    }))
+);
+
+  }, [existingReports]);
 
   function addRow() {
-    setRows([
-      ...rows,
+
+    setRows((prev) => [
+
+      ...prev,
       {
-        movieId: "",
-        versionId: "",
-        tickets: "",
-        revenue: "",
-      },
+  id: null,
+  movieId: "",
+  versionId: "",
+  tickets: "",
+  revenue: "",
+}
     ]);
+
   }
 
-  function updateRow(index, field, value) {
+  function updateRow(
+    index,
+    field,
+    value
+  ) {
+
     setRows((prev) =>
       prev.map((row, i) =>
         i === index
@@ -41,35 +82,95 @@ export default function WorkDayForm({
           : row
       )
     );
+
   }
 
-  function removeRow(index) {
-    setRows(rows.filter((_, i) => i !== index));
-  }
+  async function removeRow(index) {
 
-  async function handleSave() {
-    const payload = rows.map((row) => ({
-      day_id: dayId,
-      cinema_id: cinemaId,
-      movie_id: row.movieId,
-      version_id: row.versionId || null,
-      tickets: Number(row.tickets || 0),
-      revenue: Number(row.revenue || 0),
-    }));
+  const row = rows[index];
 
-    console.log("FINAL PAYLOAD:", payload);
+  console.log("DELETE ROW >>>", row);
 
-    const result = await saveWorkDayRevenue(
-      JSON.stringify(payload)
+  if (row?.id) {
+
+    const ok = confirm(
+      "هل تريد حذف هذا الفيلم من يوم العمل؟"
     );
 
-    if (result.success) {
-      alert("✅ تم الحفظ بنجاح");
-    } else {
-      alert(result.message);
+    if (!ok) {
+      return;
     }
+
+    const result =
+      await deleteWorkDayReport(row.id);
+
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
+setDeletedIds((prev) => [
+  ...prev,
+  row.id,
+]);
+    setRows((prev) =>
+      prev.filter(
+        (_, i) => i !== index
+      )
+    );
+
+    alert("✅ تم حذف السجل");
+
+    return;
   }
 
+
+  setRows((prev) =>
+    prev.filter(
+      (_, i) => i !== index
+    )
+  );
+
+}
+
+  async function handleSave() {
+
+    const payload = rows.map((row) => ({
+
+      day_id: dayId,
+
+      cinema_id: cinemaId,
+
+      movie_id: row.movieId,
+
+      version_id:
+        row.versionId || null,
+
+      tickets:
+        Number(row.tickets || 0),
+
+      revenue:
+        Number(row.revenue || 0),
+
+    }));
+
+    console.log(payload);
+
+    const result =
+      await saveWorkDayRevenue(
+        JSON.stringify(payload)
+      );
+
+    if (result.success) {
+
+  alert("✅ تم الحفظ بنجاح");
+
+  window.location.reload();
+
+} else {
+
+  alert(result.message);
+}
+  }
   return (
     <div
       style={{
@@ -82,10 +183,9 @@ export default function WorkDayForm({
 
       {rows.map((row, index) => {
         const selectedMovie = movies.find(
-          (m) =>
-            String(m.id) === String(row.movieId)
+  (m) =>
+    String(m.id) === String(row.movieId)
         );
-
         return (
           <div
             key={index}
@@ -97,33 +197,32 @@ export default function WorkDayForm({
             }}
           >
             <select
-              value={row.movieId}
-              onChange={(e) =>
-                updateRow(
-                  index,
-                  "movieId",
-                  e.target.value
-                )
-              }
-              style={{
-                width: "100%",
-                padding: "10px",
-              }}
-            >
-              <option value="">
-                اختر فيلم
-              </option>
+  value={row.movieId}
+  onChange={(e) =>
+    updateRow(
+      index,
+      "movieId",
+      e.target.value
+    )
+  }
+  style={{
+    width: "100%",
+    padding: "10px",
+  }}
+>
+  <option value="">
+    اختر فيلم
+  </option>
 
-              {movies.map((movie) => (
-                <option
-                  key={movie.id}
-                  value={movie.id}
-                >
-                  {movie.code} - {movie.title}
-                </option>
-              ))}
-            </select>
-
+  {movies.map((movie) => (
+    <option
+      key={movie.id}
+      value={movie.id}
+    >
+      {movie.code} - {movie.title}
+    </option>
+  ))}
+</select>          
             {selectedMovie && (
               <div
                 style={{
@@ -145,7 +244,6 @@ export default function WorkDayForm({
                 <p>{selectedMovie.code}</p>
               </div>
             )}
-
             <select
               value={row.versionId}
               onChange={(e) =>

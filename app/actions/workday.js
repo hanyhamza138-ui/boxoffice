@@ -11,9 +11,10 @@ export async function saveWorkDayRevenue(data) {
       throw new Error("No data provided");
     }
 
-    const today = new Date()
-      .toISOString()
-      .split("T")[0];
+    const today =
+      new Date()
+        .toISOString()
+        .split("T")[0];
 
     const payload = rows
       .filter(
@@ -28,13 +29,16 @@ export async function saveWorkDayRevenue(data) {
 
         movie_id: Number(row.movie_id),
 
-        version_id: row.version_id
-          ? Number(row.version_id)
-          : null,
+        version_id:
+          row.version_id
+            ? Number(row.version_id)
+            : null,
 
-        tickets: Number(row.tickets || 0),
+        tickets:
+          Number(row.tickets || 0),
 
-        revenue: Number(row.revenue || 0),
+        revenue:
+          Number(row.revenue || 0),
 
         report_date: today,
 
@@ -42,49 +46,74 @@ export async function saveWorkDayRevenue(data) {
       }));
 
     if (!payload.length) {
-      throw new Error("No valid rows");
+      throw new Error(
+        "No valid rows"
+      );
     }
 
     console.log(
-      "INSERT PAYLOAD",
+      "UPSERT PAYLOAD",
       payload
     );
 
-    const { error } = await supabase
-      .from("boxoffice_reports")
-      .insert(payload);
+    const { error } =
+      await supabase
+        .from("boxoffice_reports")
+        .upsert(
+          payload,
+          {
+            onConflict:
+              "day_id,movie_id,cinema_id,version_id",
+            ignoreDuplicates: false,
+          }
+        );
 
     if (error) {
       console.log(error);
-      throw new Error(error.message);
+      throw new Error(
+        error.message
+      );
     }
 
-    revalidatePath("/admin/work-day");
+    revalidatePath(
+      "/admin/work-day"
+    );
 
     return {
       success: true,
     };
+
   } catch (error) {
+
     console.log(error);
 
     return {
       success: false,
       message: error.message,
     };
+
   }
 }
 
 export async function closeWorkDay(dayId) {
+
   try {
-    const { error } = await supabase
-      .from("boxoffice_days")
-      .update({
-        status: "closed",
-      })
-      .eq("id", Number(dayId));
+
+    const { error } =
+      await supabase
+        .from("boxoffice_days")
+        .update({
+          status: "closed",
+        })
+        .eq(
+          "id",
+          Number(dayId)
+        );
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(
+        error.message
+      );
     }
 
     revalidatePath(
@@ -98,27 +127,39 @@ export async function closeWorkDay(dayId) {
     return {
       success: true,
     };
+
   } catch (error) {
+
     console.log(error);
 
     return {
       success: false,
       message: error.message,
     };
+
   }
+
 }
 
 export async function reopenWorkDay(dayId) {
+
   try {
-    const { error } = await supabase
-      .from("boxoffice_days")
-      .update({
-        status: "open",
-      })
-      .eq("id", Number(dayId));
+
+    const { error } =
+      await supabase
+        .from("boxoffice_days")
+        .update({
+          status: "open",
+        })
+        .eq(
+          "id",
+          Number(dayId)
+        );
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(
+        error.message
+      );
     }
 
     revalidatePath(
@@ -128,6 +169,35 @@ export async function reopenWorkDay(dayId) {
     revalidatePath(
       "/admin/work-day"
     );
+
+    return {
+      success: true,
+    };
+
+  } catch (error) {
+
+    console.log(error);
+
+    return {
+      success: false,
+      message: error.message,
+    };
+
+  }
+
+}
+export async function deleteWorkDayReport(reportId) {
+  try {
+    const { error } = await supabase
+      .from("boxoffice_reports")
+      .delete()
+      .eq("id", Number(reportId));
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath("/admin/work-day");
 
     return {
       success: true,

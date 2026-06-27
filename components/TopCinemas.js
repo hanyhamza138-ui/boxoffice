@@ -11,20 +11,20 @@ import {
 } from "recharts";
 
 
-export default function TopMovies({
-  movies = []
+export default function TopCinemas({
+  cinemas = []
 }) {
 
 
   const chartData =
-    movies
+    cinemas
     .slice(0,10)
-    .map(movie => ({
+    .map(cinema => ({
       name:
-        movie.title,
+        cinema.name,
 
       revenue:
-        Number(movie.revenue || 0),
+        Number(cinema.revenue || 0),
     }));
 
 
@@ -42,7 +42,7 @@ export default function TopMovies({
 
 
       <h2>
-        🎬 Top Movies
+        🏢 Top Cinemas
       </h2>
 
 
@@ -117,6 +117,7 @@ export default function TopMovies({
 
             </BarChart>
 
+
           </ResponsiveContainer>
 
 
@@ -136,25 +137,25 @@ export default function TopMovies({
       >
 
         {
-          movies
+          cinemas
           .slice(0,10)
           .map(
-            (movie,index)=>(
+            (cinema,index)=>(
 
               <li
-                key={movie.movie_id}
+                key={cinema.cinema_id}
               >
 
                 #{index + 1}{" "}
-                {movie.code}
+                {cinema.code}
                 {" - "}
-                {movie.title}
+                {cinema.name}
 
                 {" | "}
 
                 {
                   Number(
-                    movie.revenue || 0
+                    cinema.revenue || 0
                   )
                   .toLocaleString()
                 }

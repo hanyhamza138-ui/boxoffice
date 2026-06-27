@@ -7,54 +7,132 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
 
-const data = [
-  { name: "Mon", revenue: 4000 },
-  { name: "Tue", revenue: 3000 },
-  { name: "Wed", revenue: 5000 },
-  { name: "Thu", revenue: 2780 },
-  { name: "Fri", revenue: 6890 },
-  { name: "Sat", revenue: 8390 },
-  { name: "Sun", revenue: 9490 },
-];
 
-export default function RevenueChart() {
+export default function RevenueChart({
+  daily = []
+}) {
+
+
+  const data =
+    daily.map((item) => ({
+      name: item.date,
+      revenue: Number(item.revenue || 0),
+    }));
+
+
+
   return (
-    <div
-      className="
-        bg-[#1c1c1c]
-        p-6
-        rounded-2xl
-        w-full
-      "
-    >
-      <h2 className="text-2xl font-bold mb-6">
-        📈 Weekly Revenue
-      </h2>
 
-      <div
+    <div
+      style={{
+        background:"#1c1c1c",
+        padding:24,
+        borderRadius:16,
+        width:"100%",
+        marginTop:30,
+      }}
+    >
+
+
+      <h2
         style={{
-          width: "100%",
-          height: "300px",
-          minWidth: 0,
+          fontSize:24,
+          fontWeight:900,
+          marginBottom:25,
         }}
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
+        📈 Revenue Trend
+      </h2>
 
-            <Line
-              type="monotone"
-              dataKey="revenue"
-              stroke="#00ff99"
-              strokeWidth={3}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+
+
+      {
+        data.length === 0
+
+        ?
+
+        (
+          <div
+            style={{
+              textAlign:"center",
+              color:"#888",
+              padding:40,
+            }}
+          >
+            No revenue data
+          </div>
+        )
+
+        :
+
+        (
+
+          <div
+            style={{
+              width:"100%",
+              height:350,
+              minWidth:0,
+            }}
+          >
+
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+
+              <LineChart
+                data={data}
+              >
+
+
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                />
+
+
+                <XAxis
+                  dataKey="name"
+                />
+
+
+                <YAxis />
+
+
+                <Tooltip
+                  formatter={(value)=>(
+                    Number(value)
+                    .toLocaleString()
+                  )}
+                />
+
+
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#00ff99"
+                  strokeWidth={3}
+                  dot={{
+                    r:5
+                  }}
+                />
+
+
+              </LineChart>
+
+            </ResponsiveContainer>
+
+          </div>
+
+        )
+
+      }
+
+
     </div>
+
   );
+
 }
