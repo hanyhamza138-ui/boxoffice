@@ -89,39 +89,32 @@ const [deletedIds, setDeletedIds] = useState([]);
 
   const row = rows[index];
 
-  console.log("DELETE ROW >>>", row);
+  if (!row?.id) {
 
-  if (row?.id) {
-
-    const ok = confirm(
-      "هل تريد حذف هذا الفيلم من يوم العمل؟"
-    );
-
-    if (!ok) {
-      return;
-    }
-
-    const result =
-      await deleteWorkDayReport(row.id);
-
-    if (!result.success) {
-      alert(result.message);
-      return;
-    }
-setDeletedIds((prev) => [
-  ...prev,
-  row.id,
-]);
     setRows((prev) =>
       prev.filter(
         (_, i) => i !== index
       )
     );
 
-    alert("✅ تم حذف السجل");
-
     return;
   }
+
+
+  const ok = confirm(
+    "هل تريد حذف هذا الفيلم من يوم العمل؟"
+  );
+
+
+  if (!ok) {
+    return;
+  }
+
+
+  setDeletedIds((prev) => [
+    ...prev,
+    row.id,
+  ]);
 
 
   setRows((prev) =>
@@ -131,9 +124,8 @@ setDeletedIds((prev) => [
   );
 
 }
-
   async function handleSave() {
-
+    const deletedReports = deletedIds;
     const payload = rows.map((row) => ({
 
       day_id: dayId,
@@ -156,9 +148,12 @@ setDeletedIds((prev) => [
     console.log(payload);
 
     const result =
-      await saveWorkDayRevenue(
-        JSON.stringify(payload)
-      );
+  await saveWorkDayRevenue(
+    JSON.stringify({
+      rows: payload,
+      deletedIds: deletedReports,
+    })
+  );
 
     if (result.success) {
 
@@ -344,7 +339,7 @@ setDeletedIds((prev) => [
         ➕ إضافة فيلم
       </button>
 
-      <button
+     <button
         type="button"
         onClick={handleSave}
         style={{
