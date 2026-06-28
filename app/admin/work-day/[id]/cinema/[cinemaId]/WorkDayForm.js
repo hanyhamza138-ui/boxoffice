@@ -15,16 +15,18 @@ export default function WorkDayForm({
 }) {
 
   const [rows, setRows] = useState([
-  {
-    id: null,
-    movieId: "",
-    versionId: "",
-    tickets: "",
-    revenue: "",
-  },
-]);
+    {
+      id: null,
+      movieId: "",
+      versionId: "",
+      tickets: "",
+      revenue: "",
+    },
+  ]);
 
-const [deletedIds, setDeletedIds] = useState([]);
+  const [deletedIds, setDeletedIds] =
+    useState([]);
+
   useEffect(() => {
 
     if (!existingReports.length) {
@@ -32,36 +34,67 @@ const [deletedIds, setDeletedIds] = useState([]);
     }
 
     setRows(
-  existingReports
-    .filter(
-      (report) =>
-        !deletedIds.includes(report.id)
-    )
-    .map((report) => ({
-      id: report.id,
-      movieId: String(report.movie_id),
-      versionId: report.version_id
-        ? String(report.version_id)
-        : "",
-      tickets: String(report.tickets ?? ""),
-      revenue: String(report.revenue ?? ""),
-    }))
-);
 
-  }, [existingReports]);
+      existingReports
+        .filter(
+          (report) =>
+            !deletedIds.includes(
+              report.id
+            )
+        )
+        .map((report) => ({
+
+          id: report.id,
+
+          movieId:
+            String(report.movie_id),
+
+          versionId:
+            report.version_id
+              ? String(
+                  report.version_id
+                )
+              : "",
+
+          tickets:
+            String(
+              report.tickets ?? ""
+            ),
+
+          revenue:
+            String(
+              report.revenue ?? ""
+            ),
+
+        }))
+
+    );
+
+  }, [
+    existingReports,
+    deletedIds,
+  ]);
 
   function addRow() {
 
     setRows((prev) => [
 
       ...prev,
+
       {
-  id: null,
-  movieId: "",
-  versionId: "",
-  tickets: "",
-  revenue: "",
-}
+
+        id: null,
+
+        movieId: "",
+
+        versionId: "",
+
+        tickets: "",
+
+        revenue: "",
+
+      },
+
     ]);
 
   }
@@ -85,88 +118,181 @@ const [deletedIds, setDeletedIds] = useState([]);
 
   }
 
-  async function removeRow(index) {
+  async function removeRow(
+    index
+  ) {
 
-  const row = rows[index];
+    const row = rows[index];
 
-  if (!row?.id) {
+    if (!row) {
+      return;
+    }
+
+    if (row.id) {
+
+      const ok = confirm(
+        "هل تريد حذف هذا الفيلم من يوم العمل؟"
+      );
+
+      if (!ok) {
+        return;
+      }
+
+      setDeletedIds((prev) => [
+
+        ...prev,
+
+        row.id,
+
+      ]);
+
+    }
 
     setRows((prev) =>
       prev.filter(
-        (_, i) => i !== index
+        (_, i) =>
+          i !== index
       )
     );
 
-    return;
   }
+    async function handleSave() {
 
+    const payload = [];
 
-  const ok = confirm(
-    "هل تريد حذف هذا الفيلم من يوم العمل؟"
-  );
+    const usedReports = new Set();
 
+    for (const row of rows) {
 
-  if (!ok) {
-    return;
-  }
+      const movieId =
+        String(row.movieId || "").trim();
 
+      const versionId =
+        String(row.versionId || "").trim();
 
-  setDeletedIds((prev) => [
-    ...prev,
-    row.id,
-  ]);
+      const tickets =
+        String(row.tickets || "").trim();
 
+      const revenue =
+        String(row.revenue || "").trim();
 
-  setRows((prev) =>
-    prev.filter(
-      (_, i) => i !== index
-    )
-  );
+      const hasAnyData =
+        movieId ||
+        versionId ||
+        tickets ||
+        revenue;
 
-}
-  async function handleSave() {
-    const deletedReports = deletedIds;
-    const payload = rows.map((row) => ({
+      // تجاهل الصف الفارغ بالكامل
+      if (!hasAnyData) {
+        continue;
+      }
 
-      day_id: dayId,
+      // لا يسمح بإدخال بيانات بدون فيلم
+      if (!movieId) {
 
-      cinema_id: cinemaId,
+        alert(
+          "يجب اختيار فيلم قبل إدخال أي بيانات."
+        );
 
-      movie_id: row.movieId,
+        return;
 
-      version_id:
-        row.versionId || null,
+      }
 
-      tickets:
-        Number(row.tickets || 0),
+      // منع تكرار الفيلم بنفس النسخة
+      const reportKey =
+        `${movieId}_${versionId}`;
 
-      revenue:
-        Number(row.revenue || 0),
+      if (
+        usedReports.has(
+          reportKey
+        )
+      ) {
 
-    }));
+        alert(
+          "تم إدخال نفس الفيلم بنفس النسخة أكثر من مرة."
+        );
 
-    console.log(payload);
+        return;
+
+      }
+
+      usedReports.add(
+        reportKey
+      );
+
+      payload.push({
+
+        id: row.id,
+
+        day_id:
+          Number(dayId),
+
+        cinema_id:
+          Number(cinemaId),
+
+        movie_id:
+          Number(movieId),
+
+        version_id:
+          versionId
+            ? Number(versionId)
+            : null,
+
+        tickets:
+          Number(
+            tickets || 0
+          ),
+
+        revenue:
+          Number(
+            revenue || 0
+          ),
+
+      });
+
+    }
+
+    if (!payload.length) {
+
+      alert(
+        "يجب إدخال فيلم واحد على الأقل."
+      );
+
+      return;
+
+    }
 
     const result =
-  await saveWorkDayRevenue(
-    JSON.stringify({
-      rows: payload,
-      deletedIds: deletedReports,
-    })
-  );
+      await saveWorkDayRevenue(
 
-    if (result.success) {
+        JSON.stringify({
 
-  alert("✅ تم الحفظ بنجاح");
+          rows: payload,
 
-  window.location.reload();
+          deletedIds,
 
-} else {
+        })
 
-  alert(result.message);
-}
+      );
+
+    if (!result.success) {
+
+      alert(
+        result.message
+      );
+
+      return;
+
+    }
+
+    alert(
+      "✅ تم الحفظ بنجاح"
+    );
+
+    window.location.reload();
+
   }
-  return (
+    return (
     <div
       style={{
         background: "#1c1c1c",
@@ -177,13 +303,17 @@ const [deletedIds, setDeletedIds] = useState([]);
       <h2>🎬 إدخال الإيرادات</h2>
 
       {rows.map((row, index) => {
-        const selectedMovie = movies.find(
-  (m) =>
-    String(m.id) === String(row.movieId)
-        );
+
+        const selectedMovie =
+          movies.find(
+            (movie) =>
+              String(movie.id) ===
+              String(row.movieId)
+          );
+
         return (
           <div
-            key={index}
+            key={row.id ?? `new-${index}`}
             style={{
               border: "1px solid #333",
               padding: "15px",
@@ -192,32 +322,33 @@ const [deletedIds, setDeletedIds] = useState([]);
             }}
           >
             <select
-  value={row.movieId}
-  onChange={(e) =>
-    updateRow(
-      index,
-      "movieId",
-      e.target.value
-    )
-  }
-  style={{
-    width: "100%",
-    padding: "10px",
-  }}
->
-  <option value="">
-    اختر فيلم
-  </option>
+              value={row.movieId}
+              onChange={(e) =>
+                updateRow(
+                  index,
+                  "movieId",
+                  e.target.value
+                )
+              }
+              style={{
+                width: "100%",
+                padding: "10px",
+              }}
+            >
+              <option value="">
+                اختر فيلم
+              </option>
 
-  {movies.map((movie) => (
-    <option
-      key={movie.id}
-      value={movie.id}
-    >
-      {movie.code} - {movie.title}
-    </option>
-  ))}
-</select>          
+              {movies.map((movie) => (
+                <option
+                  key={movie.id}
+                  value={movie.id}
+                >
+                  {movie.code} - {movie.title}
+                </option>
+              ))}
+            </select>
+
             {selectedMovie && (
               <div
                 style={{
@@ -234,11 +365,16 @@ const [deletedIds, setDeletedIds] = useState([]);
                   }}
                 />
 
-                <h3>{selectedMovie.title}</h3>
+                <h3>
+                  {selectedMovie.title}
+                </h3>
 
-                <p>{selectedMovie.code}</p>
+                <p>
+                  {selectedMovie.code}
+                </p>
               </div>
             )}
+
             <select
               value={row.versionId}
               onChange={(e) =>
@@ -306,7 +442,9 @@ const [deletedIds, setDeletedIds] = useState([]);
 
             <button
               type="button"
-              onClick={() => removeRow(index)}
+              onClick={() =>
+                removeRow(index)
+              }
               style={{
                 marginTop: "10px",
                 background: "#dc2626",
@@ -321,6 +459,7 @@ const [deletedIds, setDeletedIds] = useState([]);
             </button>
           </div>
         );
+
       })}
 
       <button
@@ -339,7 +478,7 @@ const [deletedIds, setDeletedIds] = useState([]);
         ➕ إضافة فيلم
       </button>
 
-     <button
+      <button
         type="button"
         onClick={handleSave}
         style={{
