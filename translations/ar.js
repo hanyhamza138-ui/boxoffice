@@ -1,39 +1,46 @@
 const ar = {
 
-  home: "الرئيسية",
+  workDay: "يوم العمل",
 
-  movies: "الأفلام",
+reports: "التقارير",
 
-  search: "بحث",
+dailyReport: "التقرير اليومي",
 
-  login: "تسجيل الدخول",
+weeklyReport: "التقرير الأسبوعي",
 
-  logout: "تسجيل الخروج",
+monthlyReport: "التقرير الشهري",
 
-  dashboard: "لوحة التحكم",
+yearlyReport: "التقرير السنوي",
 
-  boxOffice: "شباك التذاكر",
+boxOfficeEgypt: "🎬 BoxOffice Egypt",
 
-  dailyStats: "الإحصائيات اليومية",
+movieRanking: "🏆 ترتيب الأفلام",
 
-  topMovies: "أفضل الأفلام",
+cinemaRanking: "🏢 ترتيب السينمات",
 
-  details: "التفاصيل",
+totalRevenue: "💰 إجمالي الإيراد",
 
-  language: "اللغة",
+totalTickets: "🎟️ إجمالي الرواد",
 
-  settings: "الإعدادات",
+totalCinemas: "🏢 عدد السينمات",
 
-  revenue: "الإيرادات",
+print: "طباعة",
 
-  audience: "عدد الجمهور",
+pdf: "PDF",
 
-  cinemas: "دور العرض",
+excel: "Excel",
 
-  date: "التاريخ",
+whatsApp: "واتساب",
 
-  analytics: "التحليلات"
+copy: "نسخ",
 
+share: "مشاركة",
+
+backToReports: "الرجوع إلى التقارير",
+
+noData: "لا توجد بيانات",
+
+generatedBy: "تم الإنشاء بواسطة BoxOffice Egypt",
 };
 
 export default ar;
