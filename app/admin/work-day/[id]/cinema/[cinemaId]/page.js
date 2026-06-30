@@ -1,39 +1,64 @@
+import { cookies } from "next/headers";
 import { supabase } from "../../../../../../lib/supabase";
 import WorkDayForm from "./WorkDayForm";
+import ar from "../../../../../../translations/ar";
+import en from "../../../../../../translations/en";
+
 export const dynamic = "force-dynamic";
+
 export default async function CinemaPage({
   params,
 }) {
-  const { id, cinemaId } = await params;
+  const { id, cinemaId } =
+    await params;
 
-  const { data: day } = await supabase
-    .from("boxoffice_days")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const cookieStore =
+    await cookies();
 
-  const { data: cinema } = await supabase
-    .from("cinemas")
-    .select("*")
-    .eq("id", cinemaId)
-    .single();
+  const language =
+    cookieStore.get("language")?.value ||
+    "en";
 
-  const { data: movies } = await supabase
-    .from("movies")
-    .select("id,title,code,poster")
-    .eq("is_active", true)
-    .order("title");
+  const t =
+    language === "ar"
+      ? ar
+      : en;
 
-  const { data: versions } = await supabase
-    .from("movie_versions")
-    .select("*")
-    .order("name");
+  const { data: day } =
+    await supabase
+      .from("boxoffice_days")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-  const { data: existingReports } = await supabase
-    .from("boxoffice_reports")
-    .select("*")
-    .eq("day_id", id)
-    .eq("cinema_id", cinemaId);
+  const { data: cinema } =
+    await supabase
+      .from("cinemas")
+      .select("*")
+      .eq("id", cinemaId)
+      .single();
+
+  const { data: movies } =
+    await supabase
+      .from("movies")
+      .select(
+        "id,title,code,poster"
+      )
+      .eq("is_active", true)
+      .order("title");
+
+  const { data: versions } =
+    await supabase
+      .from("movie_versions")
+      .select("*")
+      .order("name");
+
+  const { data: existingReports } =
+    await supabase
+      .from("boxoffice_reports")
+      .select("*")
+      .eq("day_id", id)
+      .eq("cinema_id", cinemaId);
 
   return (
     <main
@@ -44,7 +69,9 @@ export default async function CinemaPage({
         padding: "30px",
       }}
     >
-      <h1>🎬 إدارة السينما</h1>
+      <h1>
+        🎬 {t.manageCinema}
+      </h1>
 
       <div
         style={{
@@ -54,20 +81,35 @@ export default async function CinemaPage({
           marginBottom: "20px",
         }}
       >
-        <h2>📅 {day?.work_date}</h2>
+        <h2>
+          📅 {day?.work_date}
+        </h2>
 
         <h3>
-          {cinema?.code} - {cinema?.name}
+          {cinema?.code}
+          {" - "}
+          {cinema?.name}
         </h3>
+
+        <p
+          style={{
+            color: "#9ca3af",
+            marginTop: "8px",
+          }}
+        >
+          {t.workDay}
+        </p>
       </div>
 
       <WorkDayForm
-        dayId={id}
-        cinemaId={cinemaId}
-        movies={movies || []}
-        versions={versions || []}
-        existingReports={existingReports || []}
-      />
+  dayId={id}
+  cinemaId={cinemaId}
+  movies={movies || []}
+  versions={versions || []}
+  existingReports={existingReports || []}
+  t={t}
+/>
+
     </main>
   );
 }

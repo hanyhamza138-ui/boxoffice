@@ -12,7 +12,9 @@ export default function WorkDayForm({
   movies,
   versions,
   existingReports = [],
+  t,
 }) {
+  
 
   const [rows, setRows] = useState([
     {
@@ -28,13 +30,11 @@ export default function WorkDayForm({
     useState([]);
 
   useEffect(() => {
-
     if (!existingReports.length) {
       return;
     }
 
     setRows(
-
       existingReports
         .filter(
           (report) =>
@@ -43,11 +43,11 @@ export default function WorkDayForm({
             )
         )
         .map((report) => ({
-
           id: report.id,
 
-          movieId:
-            String(report.movie_id),
+          movieId: String(
+            report.movie_id
+          ),
 
           versionId:
             report.version_id
@@ -56,47 +56,31 @@ export default function WorkDayForm({
                 )
               : "",
 
-          tickets:
-            String(
-              report.tickets ?? ""
-            ),
+          tickets: String(
+            report.tickets ?? ""
+          ),
 
-          revenue:
-            String(
-              report.revenue ?? ""
-            ),
-
+          revenue: String(
+            report.revenue ?? ""
+          ),
         }))
-
     );
-
   }, [
     existingReports,
     deletedIds,
   ]);
 
   function addRow() {
-
     setRows((prev) => [
-
       ...prev,
-
       {
-
         id: null,
-
         movieId: "",
-
         versionId: "",
-
         tickets: "",
-
         revenue: "",
-
       },
-
     ]);
-
   }
 
   function updateRow(
@@ -104,7 +88,6 @@ export default function WorkDayForm({
     field,
     value
   ) {
-
     setRows((prev) =>
       prev.map((row, i) =>
         i === index
@@ -115,66 +98,61 @@ export default function WorkDayForm({
           : row
       )
     );
-
   }
 
   async function removeRow(
     index
   ) {
-
     const row = rows[index];
 
-    if (!row) {
-      return;
-    }
+    if (!row) return;
 
     if (row.id) {
-
       const ok = confirm(
-        "هل تريد حذف هذا الفيلم من يوم العمل؟"
+        t.confirmDeleteMovie
       );
 
-      if (!ok) {
-        return;
-      }
+      if (!ok) return;
 
       setDeletedIds((prev) => [
-
         ...prev,
-
         row.id,
-
       ]);
-
     }
 
     setRows((prev) =>
       prev.filter(
-        (_, i) =>
-          i !== index
+        (_, i) => i !== index
       )
     );
-
   }
-    async function handleSave() {
 
+  async function handleSave() {
     const payload = [];
 
-    const usedReports = new Set();
+    const usedReports =
+      new Set();
 
     for (const row of rows) {
-
       const movieId =
-        String(row.movieId || "").trim();
+        String(
+          row.movieId || ""
+        ).trim();
 
       const versionId =
-        String(row.versionId || "").trim();
+        String(
+          row.versionId || ""
+        ).trim();
 
       const tickets =
-        String(row.tickets || "").trim();
+        String(
+          row.tickets || ""
+        ).trim();
 
       const revenue =
-        String(row.revenue || "").trim();
+        String(
+          row.revenue || ""
+        ).trim();
 
       const hasAnyData =
         movieId ||
@@ -182,23 +160,17 @@ export default function WorkDayForm({
         tickets ||
         revenue;
 
-      // تجاهل الصف الفارغ بالكامل
       if (!hasAnyData) {
         continue;
       }
 
-      // لا يسمح بإدخال بيانات بدون فيلم
       if (!movieId) {
-
         alert(
-          "يجب اختيار فيلم قبل إدخال أي بيانات."
+          t.selectMovieFirst
         );
-
         return;
-
       }
 
-      // منع تكرار الفيلم بنفس النسخة
       const reportKey =
         `${movieId}_${versionId}`;
 
@@ -207,13 +179,10 @@ export default function WorkDayForm({
           reportKey
         )
       ) {
-
         alert(
-          "تم إدخال نفس الفيلم بنفس النسخة أكثر من مرة."
+          t.duplicateMovie
         );
-
         return;
-
       }
 
       usedReports.add(
@@ -221,7 +190,6 @@ export default function WorkDayForm({
       );
 
       payload.push({
-
         id: row.id,
 
         day_id:
@@ -238,59 +206,41 @@ export default function WorkDayForm({
             ? Number(versionId)
             : null,
 
-        tickets:
-          Number(
-            tickets || 0
-          ),
+        tickets: Number(
+          tickets || 0
+        ),
 
-        revenue:
-          Number(
-            revenue || 0
-          ),
-
+        revenue: Number(
+          revenue || 0
+        ),
       });
-
     }
 
     if (!payload.length) {
-
       alert(
-        "يجب إدخال فيلم واحد على الأقل."
+        t.enterAtLeastOneMovie
       );
-
       return;
-
     }
 
     const result =
       await saveWorkDayRevenue(
-
         JSON.stringify({
-
           rows: payload,
-
           deletedIds,
-
         })
-
       );
 
     if (!result.success) {
-
-      alert(
-        result.message
-      );
-
+      alert(result.message);
       return;
-
     }
 
     alert(
-      "✅ تم الحفظ بنجاح"
+      t.savedSuccessfully
     );
 
     window.location.reload();
-
   }
     return (
     <div
@@ -300,10 +250,11 @@ export default function WorkDayForm({
         borderRadius: "10px",
       }}
     >
-      <h2>🎬 إدخال الإيرادات</h2>
+      <h2>
+        🎬 {t.enterRevenue}
+      </h2>
 
       {rows.map((row, index) => {
-
         const selectedMovie =
           movies.find(
             (movie) =>
@@ -313,9 +264,13 @@ export default function WorkDayForm({
 
         return (
           <div
-            key={row.id ?? `new-${index}`}
+            key={
+              row.id ??
+              `new-${index}`
+            }
             style={{
-              border: "1px solid #333",
+              border:
+                "1px solid #333",
               padding: "15px",
               borderRadius: "10px",
               marginBottom: "20px",
@@ -336,47 +291,64 @@ export default function WorkDayForm({
               }}
             >
               <option value="">
-                اختر فيلم
+                {t.selectMovie}
               </option>
 
-              {movies.map((movie) => (
-                <option
-                  key={movie.id}
-                  value={movie.id}
-                >
-                  {movie.code} - {movie.title}
-                </option>
-              ))}
+              {movies.map(
+                (movie) => (
+                  <option
+                    key={movie.id}
+                    value={movie.id}
+                  >
+                    {movie.code}
+                    {" - "}
+                    {movie.title}
+                  </option>
+                )
+              )}
             </select>
 
             {selectedMovie && (
               <div
                 style={{
-                  marginTop: "15px",
-                  textAlign: "center",
+                  marginTop:
+                    "15px",
+                  textAlign:
+                    "center",
                 }}
               >
                 <img
-                  src={selectedMovie.poster}
-                  alt={selectedMovie.title}
+                  src={
+                    selectedMovie.poster
+                  }
+                  alt={
+                    selectedMovie.title
+                  }
                   style={{
                     width: "180px",
-                    borderRadius: "10px",
+                    borderRadius:
+                      "10px",
                   }}
                 />
 
                 <h3>
-                  {selectedMovie.title}
+                  {
+                    selectedMovie.title
+                  }
                 </h3>
 
                 <p>
-                  {selectedMovie.code}
+                  {
+                    selectedMovie.code
+                  }
                 </p>
               </div>
             )}
 
             <select
-              value={row.versionId}
+              value={
+                row.versionId
+              }
               onChange={(e) =>
                 updateRow(
                   index,
@@ -387,26 +359,37 @@ export default function WorkDayForm({
               style={{
                 width: "100%",
                 padding: "10px",
-                marginTop: "10px",
+                marginTop:
+                  "10px",
               }}
             >
               <option value="">
-                اختر النسخة
+                {t.selectVersion}
               </option>
 
-              {versions.map((version) => (
-                <option
-                  key={version.id}
-                  value={version.id}
-                >
-                  {version.name}
-                </option>
-              ))}
+              {versions.map(
+                (version) => (
+                  <option
+                    key={
+                      version.id
+                    }
+                    value={
+                      version.id
+                    }
+                  >
+                    {
+                      version.name
+                    }
+                  </option>
+                )
+              )}
             </select>
 
             <input
               type="number"
-              placeholder="عدد الرواد"
+              placeholder={
+                t.totalTickets
+              }
               value={row.tickets}
               onChange={(e) =>
                 updateRow(
@@ -418,13 +401,16 @@ export default function WorkDayForm({
               style={{
                 width: "100%",
                 padding: "10px",
-                marginTop: "10px",
+                marginTop:
+                  "10px",
               }}
             />
 
             <input
               type="number"
-              placeholder="الإيراد"
+              placeholder={
+                t.totalRevenue
+              }
               value={row.revenue}
               onChange={(e) =>
                 updateRow(
@@ -436,7 +422,8 @@ export default function WorkDayForm({
               style={{
                 width: "100%",
                 padding: "10px",
-                marginTop: "10px",
+                marginTop:
+                  "10px",
               }}
             />
 
@@ -446,20 +433,24 @@ export default function WorkDayForm({
                 removeRow(index)
               }
               style={{
-                marginTop: "10px",
-                background: "#dc2626",
+                marginTop:
+                  "10px",
+                background:
+                  "#dc2626",
                 color: "white",
                 border: "none",
-                padding: "10px",
-                borderRadius: "6px",
-                cursor: "pointer",
+                padding:
+                  "10px",
+                borderRadius:
+                  "6px",
+                cursor:
+                  "pointer",
               }}
             >
-              حذف
+              🗑️ {t.delete}
             </button>
           </div>
         );
-
       })}
 
       <button
@@ -475,7 +466,7 @@ export default function WorkDayForm({
           marginRight: "10px",
         }}
       >
-        ➕ إضافة فيلم
+        ➕ {t.addMovie}
       </button>
 
       <button
@@ -490,7 +481,7 @@ export default function WorkDayForm({
           cursor: "pointer",
         }}
       >
-        💾 حفظ
+        💾 {t.save}
       </button>
     </div>
   );

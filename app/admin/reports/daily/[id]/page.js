@@ -76,6 +76,7 @@ const t =
   day={day?.work_date}
   totals={totals}
   movies={rankedMovies}
+  cinemas={rankedCinemas}
 />
       </div>
 
@@ -111,7 +112,7 @@ const t =
       </div>
             <Section title={t.movieRanking}>
         {rankedMovies.length === 0 ? (
-          <p>لا توجد بيانات.</p>
+          <p>{t.noData}</p>
         ) : (
           rankedMovies.map(
             (movie, index) => (
@@ -136,7 +137,7 @@ const t =
 
       <Section title={t.cinemaRanking}>
         {rankedCinemas.length === 0 ? (
-          <p>لا توجد بيانات.</p>
+          <p>{t.noData}</p>
         ) : (
           rankedCinemas.map(
             (
@@ -175,7 +176,7 @@ const t =
           <button
             style={buttonStyle}
           >
-            ← رجوع إلى التقارير
+            ← {t.backToReports}
           </button>
         </Link>
       </div>
