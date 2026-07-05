@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function CinemasPage() {
@@ -16,12 +16,7 @@ export default function CinemasPage() {
   });
 
 
-  useEffect(() => {
-    fetchCinemas();
-  }, []);
-
-
-  const fetchCinemas = async () => {
+  const fetchCinemas = useCallback(async () => {
     const { data, error } = await supabase
       .from("cinemas")
       .select("*")
@@ -35,7 +30,14 @@ export default function CinemasPage() {
     console.log("CINEMAS =", data);
 
     setCinemas(data || []);
-  };
+  }, []);
+
+
+  useEffect(() => {
+    // Client-side Supabase loading for this legacy form page.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchCinemas();
+  }, [fetchCinemas]);
 
 
   const handleChange = (e) => {

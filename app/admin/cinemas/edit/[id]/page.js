@@ -3,8 +3,8 @@ import { updateCinema } from "../../../../actions";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
-import ar from "@/translations/ar";
-import en from "@/translations/en";
+import ar from "../../../../../translations/ar";
+import en from "../../../../../translations/en";
 
 
 export default async function EditCinemaPage({

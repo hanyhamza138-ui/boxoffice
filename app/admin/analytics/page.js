@@ -19,13 +19,15 @@ export default async function AnalyticsPage({
     .toISOString()
     .split("T")[0];
 
+  const defaultFromDate =
+    new Date();
 
+  defaultFromDate.setDate(
+    defaultFromDate.getDate() - 30
+  );
 
   const defaultFrom =
-    new Date(
-      Date.now() -
-      30 * 24 * 60 * 60 * 1000
-    )
+    defaultFromDate
     .toISOString()
     .split("T")[0];
 
@@ -68,7 +70,6 @@ export default async function AnalyticsPage({
 
   const movies =
     data?.movies || [];
-console.log("MOVIES DATA", movies);
 
   const cinemas =
     data?.cinemas || [];
@@ -149,36 +150,5 @@ console.log("MOVIES DATA", movies);
     </main>
 
   );
-
-}
-
-
-
-function Card({
-  title,
-  value
-}){
-
-return (
-
-<div
-style={{
-background:"#1c1c1c",
-padding:"20px",
-borderRadius:"10px",
-}}
->
-
-<h3>
-{title}
-</h3>
-
-<h2>
-{value}
-</h2>
-
-</div>
-
-);
 
 }

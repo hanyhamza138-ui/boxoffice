@@ -1,69 +1,65 @@
 const ar = {
-
+  addCinema: "إضافة سينما",
+  addMovie: "إضافة فيلم",
+  adminPanel: "لوحة التحكم",
+  AdminPanel: "لوحة التحكم",
+  analytics: "التحليلات",
+  audience: "الجمهور",
+  back: "الرجوع",
+  backToReports: "الرجوع إلى التقارير",
+  boxOfficeEgypt: "شباك التذاكر المصري",
+  cinemaName: "اسم السينما",
+  cinemaRanking: "ترتيب السينمات",
+  cinemas: "السينمات",
+  city: "المدينة",
+  closeWorkDay: "إغلاق يوم العمل",
+  closed: "مغلق",
+  confirmDeleteMovie: "هل تريد حذف هذا الفيلم من يوم العمل؟",
+  copy: "نسخ",
+  dailyReport: "التقرير اليومي",
+  dailyStats: "الإحصائيات اليومية",
+  dashboard: "لوحة البيانات",
+  dataEntered: "تم الإدخال",
+  date: "التاريخ",
+  delete: "حذف",
+  details: "التفاصيل",
+  duplicateMovie: "تم إدخال نفس الفيلم بنفس النسخة أكثر من مرة.",
+  enterAtLeastOneMovie: "يجب إدخال فيلم واحد على الأقل.",
+  enterRevenue: "إدخال الإيرادات",
+  excel: "Excel",
+  generatedBy: "تم الإنشاء بواسطة BoxOffice Egypt",
+  language: "اللغة",
+  logout: "تسجيل الخروج",
+  manageCinema: "إدارة السينما",
+  monthlyReport: "التقرير الشهري",
+  movieRanking: "ترتيب الأفلام",
+  movies: "الأفلام",
+  noData: "لا توجد بيانات",
+  notEntered: "لم يتم الإدخال",
+  open: "مفتوح",
+  owner: "المالك",
+  pdf: "PDF",
+  print: "طباعة",
+  reopenWorkDay: "إعادة فتح يوم العمل",
+  reports: "التقارير",
+  revenue: "الإيراد",
+  save: "حفظ",
+  saveChanges: "حفظ التغييرات",
+  screens: "الشاشات",
+  search: "بحث",
+  seats: "المقاعد",
+  selectMovie: "اختر فيلم",
+  selectMovieFirst: "يجب اختيار فيلم قبل إدخال أي بيانات.",
+  selectVersion: "اختر النسخة",
+  share: "مشاركة",
+  status: "الحالة",
+  totalCinemas: "عدد السينمات",
+  totalRevenue: "إجمالي الإيراد",
+  totalTickets: "إجمالي الجمهور",
+  weeklyReport: "التقرير الأسبوعي",
+  whatsApp: "واتساب",
   workDay: "يوم العمل",
-
-reports: "التقارير",
-
-dailyReport: "التقرير اليومي",
-
-weeklyReport: "التقرير الأسبوعي",
-
-monthlyReport: "التقرير الشهري",
-
-yearlyReport: "التقرير السنوي",
-
-boxOfficeEgypt: "🎬 BoxOffice Egypt",
-
-movieRanking: "🏆 ترتيب الأفلام",
-
-cinemaRanking: "🏢 ترتيب السينمات",
-
-totalRevenue: "💰 إجمالي الإيراد",
-
-totalTickets: "🎟️ إجمالي الرواد",
-
-totalCinemas: "🏢 عدد السينمات",
-
-print: "طباعة",
-
-pdf: "PDF",
-
-excel: "Excel",
-
-noData: "لا توجد بيانات.",
-
-backToReports: "الرجوع إلى التقارير",
-
-whatsApp: "واتساب",
-
-copy: "نسخ",
-
-share: "مشاركة",
-enterRevenue: "إدخال الإيرادات",
-selectMovie: "اختر فيلم",
-selectVersion: "اختر النسخة",
-addMovie: "إضافة فيلم",
-save: "حفظ",
-delete: "حذف",
-confirmDeleteMovie: "هل تريد حذف هذا الفيلم من يوم العمل؟",
-selectMovieFirst: "يجب اختيار فيلم قبل إدخال أي بيانات.",
-duplicateMovie: "تم إدخال نفس الفيلم بنفس النسخة أكثر من مرة.",
-enterAtLeastOneMovie: "يجب إدخال فيلم واحد على الأقل.",
-savedSuccessfully: "✅ تم الحفظ بنجاح",
-backToReports: "الرجوع إلى التقارير",
-
-noData: "لا توجد بيانات",
-workDay: "يوم العمل",
-status: "الحالة",
-open: "مفتوح",
-closed: "مغلق",
-closeWorkDay: "إغلاق يوم العمل",
-reopenWorkDay: "إعادة فتح يوم العمل",
-dataEntered: "تم الإدخال",
-notEntered: "لم يتم الإدخال",
-manageCinema: "إدارة السينما",
-back: "الرجوع",
-generatedBy: "تم الإنشاء بواسطة BoxOffice Egypt",
+  yearlyReport: "التقرير السنوي",
 };
 
 export default ar;

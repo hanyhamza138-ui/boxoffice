@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { deleteMovie } from "../actions";
-
 export default async function AdminPage({ searchParams }) {
   const params = await searchParams;
   const search = params?.search || "";
@@ -320,7 +319,7 @@ margin: 0,
       {/* Poster */}
       <div
         style={{
-          height: 340,
+          height: 420,
           position: "relative",
         }}
       >

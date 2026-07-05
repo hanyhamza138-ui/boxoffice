@@ -1,10 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   saveWorkDayRevenue,
   deleteWorkDayReport,
 } from "../../../../../actions/workday";
+
+const blankRow = {
+  id: null,
+  movieId: "",
+  versionId: "",
+  tickets: "",
+  revenue: "",
+};
+
+function reportToRow(report) {
+  return {
+    id: report.id,
+    movieId: String(report.movie_id),
+    versionId: report.version_id ? String(report.version_id) : "",
+    tickets: String(report.tickets ?? ""),
+    revenue: String(report.revenue ?? ""),
+  };
+}
 
 export default function WorkDayForm({
   dayId,
@@ -16,70 +34,19 @@ export default function WorkDayForm({
 }) {
   
 
-  const [rows, setRows] = useState([
-    {
-      id: null,
-      movieId: "",
-      versionId: "",
-      tickets: "",
-      revenue: "",
-    },
-  ]);
+  const [rows, setRows] = useState(() =>
+    existingReports.length
+      ? existingReports.map(reportToRow)
+      : [blankRow]
+  );
 
   const [deletedIds, setDeletedIds] =
     useState([]);
 
-  useEffect(() => {
-    if (!existingReports.length) {
-      return;
-    }
-
-    setRows(
-      existingReports
-        .filter(
-          (report) =>
-            !deletedIds.includes(
-              report.id
-            )
-        )
-        .map((report) => ({
-          id: report.id,
-
-          movieId: String(
-            report.movie_id
-          ),
-
-          versionId:
-            report.version_id
-              ? String(
-                  report.version_id
-                )
-              : "",
-
-          tickets: String(
-            report.tickets ?? ""
-          ),
-
-          revenue: String(
-            report.revenue ?? ""
-          ),
-        }))
-    );
-  }, [
-    existingReports,
-    deletedIds,
-  ]);
-
   function addRow() {
     setRows((prev) => [
       ...prev,
-      {
-        id: null,
-        movieId: "",
-        versionId: "",
-        tickets: "",
-        revenue: "",
-      },
+      blankRow,
     ]);
   }
 
