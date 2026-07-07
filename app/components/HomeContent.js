@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
-
+import Image from "next/image";
 const fallback = {
   adminPanel: { ar: "لوحة التحكم", en: "Admin Panel" },
   all: { ar: "الكل", en: "All" },
@@ -28,7 +28,11 @@ const emoji = {
   settings: "\u2699\uFE0F",
 };
 
-export default function HomeContent({ movies = [], t = {} }) {
+export default function HomeContent({
+  movies = [],
+  cinemasCount = 0,
+  t = {},
+}) {
   const { isArabic } = useLanguage();
   const [filter, setFilter] = useState("all");
 
@@ -53,7 +57,30 @@ export default function HomeContent({ movies = [], t = {} }) {
   }, [movies, filter]);
 
   const topMovie = filteredMovies[0];
+const totalRevenue = movies.reduce(
+  (sum, movie) => sum + (Number(movie.revenue) || 0),
+  0
+);
 
+const totalAudience = movies.reduce(
+  (sum, movie) => sum + (Number(movie.audience) || 0),
+  0
+);
+
+const totalCinemas = movies.reduce(
+  (sum, movie) => sum + (Number(movie.cinemas) || 0),
+  0
+);
+
+const today = new Date().toLocaleDateString(
+  isArabic ? "ar-EG" : "en-US",
+  {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }
+);
   const filters = [
     { count: allCount, label: text("all"), value: "all" },
     { count: arCount, label: text("arabic"), value: "ar" },
@@ -67,86 +94,135 @@ export default function HomeContent({ movies = [], t = {} }) {
         minHeight: "100vh",
         background: "linear-gradient(180deg,#050505,#101010,#0b0b0b)",
         color: "#fff",
-        padding: 24,
+        padding: 10,
         fontFamily: font,
       }}
     >
       <header
+  style={{
+    marginBottom: 20,
+    padding: "16px 18px",
+    borderRadius: 22,
+    background: "linear-gradient(135deg,#0b1220,#1e293b,#111827)",
+    border: "1px solid #334155",
+    overflow: "hidden",
+    boxShadow: "0 8px 25px rgba(0,0,0,.35)",
+  }}
+>
+  {/* Logo Banner */}
+  <div
+    style={{
+      position: "relative",
+      width: "100%",
+      height: 140,
+      overflow: "hidden",
+      borderRadius: 18,
+      marginBottom: 14,
+    }}
+  >
+    <Image
+      src="/logo.png"
+      alt="UVG Logo"
+      fill
+      priority
+      style={{
+        objectFit: "cover",
+        objectPosition: "center center",
+      }}
+    />
+  </div>
+
+  {/* Bottom Bar */}
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 12,
+    }}
+  >
+    <div
+      style={{
+        color: "#E5E7EB",
+        fontSize: 15,
+        fontWeight: 700,
+      }}
+    >
+      📅 {today}
+    </div>
+
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
+      <LanguageSwitcher />
+
+      <Link
+        href="/admin"
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 24,
-          marginBottom: 35,
-          padding: "26px 30px",
-          borderRadius: 24,
-          background: "linear-gradient(135deg,#161616,#0b0b0b)",
-          border: "1px solid #2b2b2b",
-          boxShadow: "0 20px 50px rgba(0,0,0,.45)",
+          background: "linear-gradient(135deg,#FFD54A,#EAB308)",
+          color: "#111",
+          padding: "10px 18px",
+          borderRadius: 12,
+          fontWeight: 900,
+          textDecoration: "none",
+          boxShadow: "0 6px 18px rgba(255,215,0,.25)",
+          transition: "0.2s",
         }}
       >
-        <div>
-          <div
-            style={{
-              color: "#FFD54A",
-              fontSize: 15,
-              fontWeight: 700,
-              letterSpacing: 1,
-            }}
-          >
-            BOX OFFICE EGYPT
-          </div>
+        ⚙️ {text("adminPanel", "Admin Panel")}
+      </Link>
+    </div>
+  </div>
+</header>
+<section
+  style={{
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(220px,1fr))",
+    gap: 20,
+    marginBottom: 35,
+  }}
+>
+  <StatCard
+    icon="💰"
+    title={isArabic ? "إجمالي الإيرادات" : "Total Revenue"}
+    value={totalRevenue.toLocaleString()}
+    color="#22c55e"
+  />
 
-          <h1
-            style={{
-              margin: "8px 0",
-              fontSize: "clamp(34px, 6vw, 48px)",
-              fontWeight: 900,
-              lineHeight: 1.1,
-            }}
-          >
-            {emoji.movie} {t.boxOfficeEgypt || "BoxOffice Egypt"}
-          </h1>
+  <StatCard
+    icon="👥"
+    title={isArabic ? "إجمالي الجمهور" : "Total Audience"}
+    value={totalAudience.toLocaleString()}
+    color="#3b82f6"
+  />
 
-          <div style={{ color: "#a3a3a3", fontSize: 17 }}>
-            {filteredMovies.length} {text("movies")}
-          </div>
-        </div>
+  <StatCard
+    icon="🎬"
+    title={isArabic ? "عدد الأفلام" : "Movies"}
+    value={movies.length}
+    color="#f59e0b"
+  />
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            flexWrap: "wrap",
-          }}
-        >
-          <LanguageSwitcher />
+  <StatCard
+    icon="🏢"
+    title={isArabic ? "عدد السينمات" : "Cinemas"}
+    value={cinemasCount.toLocaleString()}
+    color="#ef4444"
+  />
 
-          <Link
-            href="/admin"
-            style={{
-              border: "none",
-              background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
-              color: "#fff",
-              padding: "13px 22px",
-              borderRadius: 14,
-              cursor: "pointer",
-              fontWeight: 800,
-              fontSize: 15,
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span aria-hidden="true">{emoji.settings}</span>
-            {text("adminPanel", "AdminPanel")}
-          </Link>
-        </div>
-      </header>
-
+  <StatCard
+    icon="📅"
+    title={isArabic ? "آخر تحديث" : "Last Updated"}
+    value={today}
+    color="#a855f7"
+  />
+</section>
       {topMovie ? (
         <section
           style={{
@@ -471,6 +547,55 @@ function SmallMetric({ centered = false, color = "#fff", icon, label, value }) {
         }}
       >
         {(value || 0).toLocaleString()}
+      </div>
+    </div>
+  );
+}
+function StatCard({
+  icon,
+  title,
+  value,
+  color,
+}) {
+  return (
+    <div
+      style={{
+        background:
+          "linear-gradient(135deg,#171717,#222)",
+        border: "1px solid #333",
+        borderRadius: 18,
+        padding: 22,
+        boxShadow:
+          "0 10px 30px rgba(0,0,0,.35)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 30,
+          marginBottom: 12,
+        }}
+      >
+        {icon}
+      </div>
+
+      <div
+        style={{
+          color: "#9CA3AF",
+          fontSize: 14,
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize: 30,
+          fontWeight: 900,
+          color,
+        }}
+      >
+        {value}
       </div>
     </div>
   );

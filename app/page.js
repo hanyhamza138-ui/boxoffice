@@ -26,7 +26,13 @@ export default async function HomePage() {
       .order("revenue", {
         ascending: false,
       });
-
+ const { count: cinemasCount } =
+  await supabase
+    .from("cinemas")
+    .select("*", {
+      count: "exact",
+      head: true,
+    });
   if (error) {
     return (
       <main
@@ -50,8 +56,9 @@ export default async function HomePage() {
 
   return (
     <HomeContent
-      movies={movies || []}
-      t={t}
-    />
+  movies={movies || []}
+  cinemasCount={cinemasCount || 0}
+  t={t}
+/>
   );
 }
