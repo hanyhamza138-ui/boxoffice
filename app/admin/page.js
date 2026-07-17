@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { deleteMovie } from "../actions";
+import AdminNav from "../components/AdminNav";
 export default async function AdminPage({ searchParams }) {
   const params = await searchParams;
   const search = params?.search || "";
@@ -118,6 +119,7 @@ margin: 0,
 >
 ⚙️ Admin Dashboard </h1>
 
+
 <form
   method="GET"
   style={{
@@ -186,7 +188,7 @@ margin: 0,
       </button>
     </Link>
   </div>
-
+<AdminNav />
   <div
     style={{
       display: "grid",

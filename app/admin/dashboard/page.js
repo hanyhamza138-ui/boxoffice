@@ -1,12 +1,13 @@
 import { supabase } from "../../../lib/supabase";
 import Link from "next/link";
 import { cookies } from "next/headers";
-
+import AdminNav from "../../components/AdminNav";
 import ar from "../../../translations/ar";
 import en from "../../../translations/en";
 
-export default async function Dashboard() {
+export const dynamic = "force-dynamic";
 
+export default async function Dashboard() {
   const cookieStore = await cookies();
 
   const language =
@@ -17,25 +18,13 @@ export default async function Dashboard() {
       ? ar
       : en;
 
-  const {
-    data,
-    error,
-  } = await supabase.rpc(
-    "get_dashboard_summary"
-  );
-
-  if (error) {
-    console.error(error);
-  }
+  const { data } =
+    await supabase.rpc(
+      "get_dashboard_summary"
+    );
 
   const totals =
-    data?.totals || {
-      movies: 0,
-      cinemas: 0,
-      records: 0,
-      revenue: 0,
-      audience: 0,
-    };
+    data?.totals || {};
 
   const topMovie =
     data?.top_movie || {};
@@ -43,21 +32,30 @@ export default async function Dashboard() {
   const latestMovies =
     data?.latest_movies || [];
 
+  const { data: openDay } =
+    await supabase
+      .from("boxoffice_days")
+      .select("*")
+      .eq("status", "open")
+      .maybeSingle();
+
   return (
     <main
       style={{
-        background: "#111",
-        color: "white",
+        background: "#0b1120",
         minHeight: "100vh",
-        padding: 40,
-        maxWidth: 1400,
+        color: "#fff",
+        padding: 35,
+        maxWidth: 1500,
         margin: "0 auto",
       }}
     >
+      <AdminNav />
 
       <h1
         style={{
           fontSize: 42,
+          marginTop: 20,
           marginBottom: 30,
         }}
       >
@@ -68,254 +66,316 @@ export default async function Dashboard() {
         style={{
           display: "grid",
           gridTemplateColumns:
-            "repeat(auto-fit,minmax(250px,1fr))",
-          gap: 20,
-          marginBottom: 40,
+            "repeat(auto-fit,minmax(240px,1fr))",
+          gap: 18,
+          marginBottom: 30,
         }}
       >
-
         <Card
           title={`🎬 ${t.movies}`}
-          value={totals.movies}
+          value={totals.movies || 0}
         />
 
         <Card
           title={`🏢 ${t.cinemas}`}
-          value={totals.cinemas}
-        />
-
-        <Card
-          title={`📅 ${t.dailyStats}`}
-          value={totals.records}
+          value={totals.cinemas || 0}
         />
 
         <Card
           title={`💰 ${t.revenue}`}
           value={Number(
-            totals.revenue
+            totals.revenue || 0
           ).toLocaleString()}
         />
 
         <Card
-          title={`👥 ${t.audience}`}
+          title={`🎟 ${t.audience}`}
           value={Number(
-            totals.audience
+            totals.audience || 0
           ).toLocaleString()}
         />
 
         <Card
-          title={
-            language === "ar"
-              ? "🏆 الفيلم الأول"
-              : "🏆 Top Movie"
-          }
-          value={
-            topMovie.title || "N/A"
-          }
+          title="🏆 Top Movie"
+          value={topMovie.title || "-"}
         />
 
+        <Card
+          title="📅 Work Day"
+          value={
+            openDay
+              ? openDay.work_date
+              : "No Open Day"
+          }
+        />
       </div>
-            <h2 style={{ marginBottom: 20 }}>
-        ⚡
-        {language === "ar"
-          ? " وصول سريع"
-          : " Quick Access"}
-      </h2>
+            <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "2fr 1fr",
+          gap: 20,
+          marginBottom: 35,
+        }}
+      >
+        <div
+          style={{
+            background: "#111827",
+            borderRadius: 16,
+            padding: 25,
+            border: "1px solid #374151",
+          }}
+        >
+          <h2
+            style={{
+              marginTop: 0,
+              marginBottom: 20,
+            }}
+          >
+            ⚡
+            {language === "ar"
+              ? " الوصول السريع"
+              : " Quick Access"}
+          </h2>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit,minmax(180px,1fr))",
+              gap: 15,
+            }}
+          >
+            <QuickButton
+              href="/admin/work-day"
+              title="📅 Work Day"
+            />
+
+            <QuickButton
+              href="/admin/movies"
+              title={`🎬 ${t.movies}`}
+            />
+
+            <QuickButton
+              href="/admin/Adminstats/cinemas"
+              title={`🏢 ${t.cinemas}`}
+            />
+
+            <QuickButton
+              href="/admin/daily-stats"
+              title={`📈 ${t.dailyStats}`}
+            />
+
+            <QuickButton
+              href="/admin/analytics"
+              title={`📊 ${t.analytics}`}
+            />
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#111827",
+            borderRadius: 16,
+            padding: 25,
+            border: "1px solid #374151",
+          }}
+        >
+          <h2
+            style={{
+              marginTop: 0,
+            }}
+          >
+            🏆
+            {language === "ar"
+              ? " أفضل فيلم"
+              : " Top Movie"}
+          </h2>
+
+          <h1
+            style={{
+              fontSize: 28,
+              marginTop: 25,
+            }}
+          >
+            {topMovie.title || "-"}
+          </h1>
+
+          <p
+            style={{
+              color: "#9ca3af",
+              marginTop: 20,
+            }}
+          >
+            💰{" "}
+            {Number(
+              topMovie.revenue || 0
+            ).toLocaleString()}
+          </p>
+
+          <p
+            style={{
+              color: "#9ca3af",
+            }}
+          >
+            🎟{" "}
+            {Number(
+              topMovie.audience || 0
+            ).toLocaleString()}
+          </p>
+        </div>
+      </div>
 
       <div
         style={{
-          display: "flex",
-          gap: 15,
-          flexWrap: "wrap",
-          marginBottom: 50,
+          background: "#111827",
+          borderRadius: 16,
+          padding: 25,
+          border: "1px solid #374151",
         }}
       >
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: 20,
+          }}
+        >
+          🎬
+          {language === "ar"
+            ? " أحدث الأفلام"
+            : " Latest Movies"}
+        </h2>
 
-        <Link href="/admin/movies">
-          <button style={buttonStyle}>
-            🎬 {t.movies}
-          </button>
-        </Link>
-
-        <Link href="/admin/Adminstats/cinemas">
-          <button style={buttonStyle}>
-            🏢 {t.cinemas}
-          </button>
-        </Link>
-
-        <Link href="/admin/daily-stats">
-          <button style={buttonStyle}>
-            📅 {t.dailyStats}
-          </button>
-        </Link>
-
-        <Link href="/admin/analytics">
-          <button style={buttonStyle}>
-            📊 {t.analytics}
-          </button>
-        </Link>
-
-      </div>
-
-      <h2 style={{ marginBottom: 20 }}>
-        🎬
-        {language === "ar"
-          ? " أحدث الأفلام"
-          : " Latest Movies"}
-      </h2>
-
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          background: "#1c1c1c",
-        }}
-      >
-
-        <thead>
-
-          <tr>
-
-            <th style={thStyle}>
-              ID
-            </th>
-
-            <th style={thStyle}>
-              {
-                language === "ar"
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+          }}
+        >
+          <thead>
+            <tr>
+              <th style={thStyle}>ID</th>
+              <th style={thStyle}>
+                {language === "ar"
                   ? "العنوان"
-                  : "Title"
-              }
-            </th>
+                  : "Title"}
+              </th>
+              <th style={thStyle}>
+                {t.revenue}
+              </th>
+              <th style={thStyle}>
+                {t.audience}
+              </th>
+              <th style={thStyle}>
+                {t.language}
+              </th>
+            </tr>
+          </thead>
 
-            <th style={thStyle}>
-              {t.revenue}
-            </th>
+          <tbody>
+            {latestMovies.map((movie) => (
+              <tr key={movie.id}>
+                <td style={tdStyle}>
+                  {movie.id}
+                </td>
 
-            <th style={thStyle}>
-              {t.audience}
-            </th>
+                <td style={tdStyle}>
+                  {movie.title}
+                </td>
 
-            <th style={thStyle}>
-              {t.language}
-            </th>
+                <td style={tdStyle}>
+                  {Number(
+                    movie.revenue || 0
+                  ).toLocaleString()}
+                </td>
 
-          </tr>
+                <td style={tdStyle}>
+                  {Number(
+                    movie.audience || 0
+                  ).toLocaleString()}
+                </td>
 
-        </thead>
-
-        <tbody>
-
-          {
-            latestMovies.map(
-              (movie) => (
-
-                <tr key={movie.id}>
-
-                  <td style={tdStyle}>
-                    {movie.id}
-                  </td>
-
-                  <td style={tdStyle}>
-                    {movie.title}
-                  </td>
-
-                  <td style={tdStyle}>
-                    {
-                      Number(
-                        movie.revenue
-                      ).toLocaleString()
-                    }
-                  </td>
-
-                  <td style={tdStyle}>
-                    {
-                      Number(
-                        movie.audience
-                      ).toLocaleString()
-                    }
-                  </td>
-
-                  <td style={tdStyle}>
-                    {
-                      movie.language || "-"
-                    }
-                  </td>
-
-                </tr>
-
-              )
-            )
-          }
-
-        </tbody>
-
-      </table>
-
-    </main>
-
+                <td style={tdStyle}>
+                  {movie.language || "-"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+          </main>
   );
-
 }
-function Card({
-  title,
-  value,
-}) {
 
+function Card({ title, value }) {
   return (
-
     <div
       style={{
-        background: "#1c1c1c",
-        padding: 25,
-        borderRadius: 12,
+        background: "#111827",
+        border: "1px solid #374151",
+        borderRadius: 16,
+        padding: 24,
+        textAlign: "center",
+        transition: ".2s",
       }}
     >
-
-      <h3>
+      <div
+        style={{
+          color: "#9ca3af",
+          fontSize: 16,
+          marginBottom: 12,
+        }}
+      >
         {title}
-      </h3>
+      </div>
 
-      <h2>
+      <div
+        style={{
+          fontSize: 34,
+          fontWeight: "bold",
+          color: "#fff",
+        }}
+      >
         {value}
-      </h2>
-
+      </div>
     </div>
-
   );
-
 }
 
-const buttonStyle = {
-
-  background: "#2563eb",
-
-  color: "white",
-
-  border: "none",
-
-  padding: "14px 24px",
-
-  borderRadius: 10,
-
-  cursor: "pointer",
-
-  fontWeight: "bold",
-
-};
+function QuickButton({ href, title }) {
+  return (
+    <Link
+      href={href}
+      style={{
+        textDecoration: "none",
+      }}
+    >
+      <div
+        style={{
+          background: "#2563eb",
+          color: "#fff",
+          padding: 18,
+          borderRadius: 12,
+          textAlign: "center",
+          fontWeight: "bold",
+          cursor: "pointer",
+          transition: ".2s",
+        }}
+      >
+        {title}
+      </div>
+    </Link>
+  );
+}
 
 const thStyle = {
-
-  padding: 15,
-
+  padding: 16,
+  background: "#1f2937",
   textAlign: "left",
-
-  background: "#222",
-
+  borderBottom: "1px solid #374151",
 };
 
 const tdStyle = {
-
-  padding: 15,
-
+  padding: 16,
+  borderBottom: "1px solid #374151",
 };

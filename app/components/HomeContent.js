@@ -100,37 +100,37 @@ const today = new Date().toLocaleDateString(
     >
       <header
   style={{
-    marginBottom: 20,
-    padding: "16px 18px",
-    borderRadius: 22,
+    marginBottom: 16,
+    padding: "12px 14px",
+    borderRadius:18,
     background: "linear-gradient(135deg,#0b1220,#1e293b,#111827)",
     border: "1px solid #334155",
     overflow: "hidden",
-    boxShadow: "0 8px 25px rgba(0,0,0,.35)",
+    boxShadow: "0 8px 18px rgba(0,0,0,.35)",
   }}
 >
   {/* Logo Banner */}
   <div
+  style={{
+    position: "relative",
+    width: "60%",
+    height: 100,
+    overflow: "hidden",
+    borderRadius: 14,
+    marginBottom: 10,
+  }}
+>
+  <Image
+    src="/logo.png"
+    alt="UVG Logo"
+    fill
+    priority
     style={{
-      position: "relative",
-      width: "100%",
-      height: 140,
-      overflow: "hidden",
-      borderRadius: 18,
-      marginBottom: 14,
+     objectFit: "contain",
+background: "#000",
     }}
-  >
-    <Image
-      src="/logo.png"
-      alt="UVG Logo"
-      fill
-      priority
-      style={{
-        objectFit: "cover",
-        objectPosition: "center center",
-      }}
-    />
-  </div>
+  />
+</div>
 
   {/* Bottom Bar */}
   <div
@@ -146,7 +146,7 @@ const today = new Date().toLocaleDateString(
       style={{
         color: "#E5E7EB",
         fontSize: 15,
-        fontWeight: 700,
+        fontWeight: 500,
       }}
     >
       📅 {today}
@@ -166,9 +166,9 @@ const today = new Date().toLocaleDateString(
         style={{
           background: "linear-gradient(135deg,#FFD54A,#EAB308)",
           color: "#111",
-          padding: "10px 18px",
+          padding: "10px 16px",
           borderRadius: 12,
-          fontWeight: 900,
+          fontWeight: 700,
           textDecoration: "none",
           boxShadow: "0 6px 18px rgba(255,215,0,.25)",
           transition: "0.2s",
@@ -184,8 +184,8 @@ const today = new Date().toLocaleDateString(
     display: "grid",
     gridTemplateColumns:
       "repeat(auto-fit,minmax(220px,1fr))",
-    gap: 20,
-    marginBottom: 35,
+    gap: 18,
+    marginBottom: 30,
   }}
 >
   <StatCard
@@ -226,16 +226,16 @@ const today = new Date().toLocaleDateString(
       {topMovie ? (
         <section
           style={{
-            marginBottom: 30,
-            padding: 32,
-            borderRadius: 26,
+            marginBottom: 20,
+            padding: 22,
+            borderRadius: 16,
             background: "linear-gradient(135deg,#0b1220,#1e293b,#111827)",
             border: "1px solid #334155",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
-            gap: 30,
+            gap: 20,
           }}
         >
           <div style={{ flex: "1 1 320px" }}>
@@ -243,7 +243,7 @@ const today = new Date().toLocaleDateString(
               style={{
                 color: "#FFD54A",
                 fontSize: 14,
-                fontWeight: 700,
+                fontWeight: 500,
                 marginBottom: 10,
               }}
             >
@@ -253,8 +253,8 @@ const today = new Date().toLocaleDateString(
             <h2
               style={{
                 margin: 0,
-                fontSize: "clamp(28px, 5vw, 40px)",
-                fontWeight: 900,
+                fontSize: "clamp(20px, 5vw, 30px)",
+                fontWeight: 600,
               }}
             >
               {topMovie.title}
@@ -291,10 +291,10 @@ const today = new Date().toLocaleDateString(
             src={topMovie.poster || "https://placehold.co/300x450"}
             alt={topMovie.title || "Top movie poster"}
             style={{
-              width: 220,
-              maxWidth: "100%",
+              width: 180,
+              maxWidth: "800%",
               borderRadius: 18,
-              boxShadow: "0 20px 50px rgba(0,0,0,.45)",
+              boxShadow: "0 20px 30px rgba(0,0,0,.45)",
             }}
           />
         </section>
@@ -372,7 +372,7 @@ const today = new Date().toLocaleDateString(
                 border: index < 3 ? `1px solid ${badgeColor}` : "1px solid #333",
                 borderRadius: 18,
                 overflow: "hidden",
-                boxShadow: "0 15px 36px rgba(0,0,0,.45)",
+                boxShadow: "0 10px 26px rgba(0,0,0,.45)",
               }}
             >
               <div style={{ position: "relative" }}>
@@ -381,7 +381,7 @@ const today = new Date().toLocaleDateString(
                   alt={movie.title || "Movie poster"}
                   style={{
                     width: "100%",
-                    height: 250,
+                    height: 200,
                     objectFit: "cover",
                     display: "block",
                   }}
@@ -393,15 +393,15 @@ const today = new Date().toLocaleDateString(
                     top: 10,
                     left: isArabic ? "auto" : 10,
                     right: isArabic ? 10 : "auto",
-                    width: 38,
-                    height: 38,
-                    borderRadius: "50%",
+                    width: 28,
+                    height: 28,
+                    borderRadius: "30%",
                     background: badgeColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     color: index < 3 ? "#000" : "#fff",
-                    fontWeight: 900,
+                    fontWeight: 600,
                     fontSize: 18,
                   }}
                 >
@@ -431,7 +431,7 @@ const today = new Date().toLocaleDateString(
                     margin: 0,
                     textAlign: "center",
                     fontSize: 18,
-                    minHeight: 48,
+                    minHeight: 28,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -542,7 +542,7 @@ function SmallMetric({ centered = false, color = "#fff", icon, label, value }) {
         style={{
           marginTop: centered ? 6 : 0,
           fontWeight: 900,
-          fontSize: centered ? 20 : 24,
+          fontSize: centered ? 16 : 20,
           color,
         }}
       >

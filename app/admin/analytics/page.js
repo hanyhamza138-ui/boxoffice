@@ -6,6 +6,7 @@ import TopMovies from "../../../components/TopMovies";
 import TopCinemas from "../../../components/TopCinemas";
 import DailyRevenue from "../../../components/DailyRevenue";
 import ExportButtons from "./ExportButtons";
+import AdminNav from "../../components/AdminNav";
 export default async function AnalyticsPage({
   searchParams,
 }) {
@@ -19,15 +20,13 @@ export default async function AnalyticsPage({
     .toISOString()
     .split("T")[0];
 
-  const defaultFromDate =
-    new Date();
 
-  defaultFromDate.setDate(
-    defaultFromDate.getDate() - 30
-  );
 
   const defaultFrom =
-    defaultFromDate
+    new Date(
+      Date.now() -
+      30 * 24 * 60 * 60 * 1000
+    )
     .toISOString()
     .split("T")[0];
 
@@ -70,6 +69,7 @@ export default async function AnalyticsPage({
 
   const movies =
     data?.movies || [];
+console.log("MOVIES DATA", movies);
 
   const cinemas =
     data?.cinemas || [];
@@ -94,7 +94,9 @@ export default async function AnalyticsPage({
 
       <h1>
         📊 Analytics Dashboard
+
       </h1>
+      <AdminNav />
             <AnalyticsFilter />
             <ExportButtons
   fromDate={fromDate}
@@ -150,5 +152,36 @@ export default async function AnalyticsPage({
     </main>
 
   );
+
+}
+
+
+
+function Card({
+  title,
+  value
+}){
+
+return (
+
+<div
+style={{
+background:"#1c1c1c",
+padding:"20px",
+borderRadius:"10px",
+}}
+>
+
+<h3>
+{title}
+</h3>
+
+<h2>
+{value}
+</h2>
+
+</div>
+
+);
 
 }

@@ -1,35 +1,62 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { supabase } from "../../../lib/supabase";
+import AdminNav from "../../components/AdminNav";
+
+export const dynamic = "force-dynamic";
 
 export default async function WorkDayPage() {
-
+  // البحث عن يوم العمل المفتوح
   const { data: openDay } = await supabase
     .from("boxoffice_days")
     .select("*")
     .eq("status", "open")
     .maybeSingle();
 
+  // إذا وجد يوم مفتوح افتحه مباشرة
+  if (openDay) {
+    redirect(`/admin/work-day/${openDay.id}`);
+  }
+
   async function createWorkDay() {
     "use server";
 
-    const today = new Date()
-      .toISOString()
-      .split("T")[0];
+    const today = new Date().toISOString().split("T")[0];
 
+    // هل يوجد يوم بنفس التاريخ؟
     const { data: existing } = await supabase
       .from("boxoffice_days")
-      .select("id")
+      .select("*")
       .eq("work_date", today)
       .maybeSingle();
 
-    if (existing) return;
+    // لو موجود افتحه
+    if (existing) {
+      if (existing.status !== "open") {
+        await supabase
+          .from("boxoffice_days")
+          .update({ status: "open" })
+          .eq("id", existing.id);
+      }
 
-    await supabase
+      revalidatePath("/admin/work-day");
+      redirect(`/admin/work-day/${existing.id}`);
+    }
+
+    // إنشاء يوم جديد
+    const { data: newDay } = await supabase
       .from("boxoffice_days")
       .insert({
         work_date: today,
-        status: "open"
-      });
+        status: "open",
+      })
+      .select()
+      .single();
+
+    revalidatePath("/admin/work-day");
+
+    redirect(`/admin/work-day/${newDay.id}`);
   }
 
   return (
@@ -38,87 +65,58 @@ export default async function WorkDayPage() {
         background: "#111",
         color: "white",
         minHeight: "100vh",
-        padding: "30px",
+        padding: 30,
       }}
     >
       <h1>📅 يوم العمل</h1>
 
-      {!openDay && (
-        <div
-          style={{
-            marginTop: "30px",
-            padding: "20px",
-            background: "#1c1c1c",
-            borderRadius: "10px",
-          }}
-        >
-          <h2>لا يوجد يوم عمل مفتوح</h2>
+      <AdminNav />
 
-          <form action={createWorkDay}>
-            <button
-              type="submit"
-              style={{
-                background: "#16a34a",
-                color: "white",
-                border: "none",
-                padding: "12px 20px",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            >
-              ➕ فتح يوم عمل جديد
-            </button>
-          </form>
-        </div>
-      )}
+      <div
+        style={{
+          marginTop: 30,
+          background: "#1c1c1c",
+          padding: 25,
+          borderRadius: 12,
+          maxWidth: 650,
+        }}
+      >
+        <h2>لا يوجد يوم عمل مفتوح</h2>
 
-      {openDay && (
-        <div
-          style={{
-            marginTop: "30px",
-            padding: "20px",
-            background: "#1c1c1c",
-            borderRadius: "10px",
-          }}
-        >
-          <h2>🟢 يوجد يوم عمل مفتوح</h2>
+        <p style={{ color: "#aaa" }}>
+          اضغط الزر لبدء يوم عمل جديد.
+        </p>
 
-          <p>
-            <strong>التاريخ:</strong>{" "}
-            {openDay.work_date}
-          </p>
-
-          <p>
-            <strong>الحالة:</strong>{" "}
-            {openDay.status}
-          </p>
-
-          <div
+        <form action={createWorkDay}>
+          <button
+            type="submit"
             style={{
-              display: "flex",
-              gap: "10px",
-              marginTop: "20px",
+              marginTop: 20,
+              background: "#16a34a",
+              color: "#fff",
+              border: "none",
+              padding: "14px 22px",
+              borderRadius: 10,
+              cursor: "pointer",
+              fontWeight: "bold",
             }}
           >
-            <Link
-              href={`/admin/work-day/${openDay.id}`}
-            >
-              <button
-                style={{
-                  background: "#2563eb",
-                  color: "white",
-                  border: "none",
-                  padding: "12px 20px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                }}
-              >
-                🎬 إدارة اليوم
-              </button>
-            </Link>
-          </div>
+            ➕ فتح يوم عمل جديد
+          </button>
+        </form>
+
+        <div style={{ marginTop: 20 }}>
+          <Link
+            href="/admin/dashboard"
+            style={{
+              color: "#60a5fa",
+              textDecoration: "none",
+            }}
+          >
+            ← العودة للوحة التحكم
+          </Link>
         </div>
-      )}
+      </div>
     </main>
   );
 }

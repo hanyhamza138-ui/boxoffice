@@ -2,7 +2,6 @@ import Link from "next/link";
 import { supabase } from "../../../../lib/supabase";
 import { deleteCinema } from "../../../actions";
 import { cookies } from "next/headers";
-
 import ar from "../../../../translations/ar";
 import en from "../../../../translations/en";
 
