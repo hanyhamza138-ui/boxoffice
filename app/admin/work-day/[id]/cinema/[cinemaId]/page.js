@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { supabase } from "../../../../../../lib/supabase";
 import WorkDayForm from "./WorkDayForm";
-import ar from "../../../../../../translations/ar";
-import en from "../../../../../../translations/en";
+import ar from "@/translations/ar";
+import en from "@/translations/en";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +20,9 @@ export default async function CinemaPage({
     "en";
 
   const t =
-    language === "ar"
-      ? ar
-      : en;
+  language === "ar"
+    ? ar
+    : en;
 
   const { data: day } =
     await supabase
