@@ -1,10 +1,43 @@
 "use client";
 
+import CreateCinemaAliasButton from "./CreateCinemaAliasButton";
+import CreateMovieAliasButton from "./CreateMovieAliasButton";
 export default function ImportPreview({
   rows = [],
-  onImport,
+  cinemas = [],
   loading = false,
+  onImport,
 }) {
+  const unknownCinemas = [
+    ...new Map(
+      rows
+        .filter(
+          (r) =>
+            !r.matchedCinema &&
+            (r.cinemaName || r.cinema)
+        )
+        .map((r) => [
+          r.cinemaName || r.cinema,
+          r,
+        ])
+    ).values(),
+  ];
+
+  const unknownMovies = [
+    ...new Map(
+      rows
+        .filter(
+          (r) =>
+            !r.matchedMovie &&
+            (r.movieName || r.movie)
+        )
+        .map((r) => [
+          r.movieName || r.movie,
+          r,
+        ])
+    ).values(),
+  ];
+
   return (
     <div
       style={{
@@ -14,7 +47,7 @@ export default function ImportPreview({
         marginTop: 25,
       }}
     >
-      <h2>📋 Preview</h2>
+      <h2>📋 Import Preview</h2>
 
       <p
         style={{
@@ -22,8 +55,59 @@ export default function ImportPreview({
           marginBottom: 20,
         }}
       >
-        {rows.length} records found
+        Found <b>{rows.length}</b> records
       </p>
+
+      {/* Unknown Movies */}
+
+{unknownMovies.length > 0 && (
+  <div
+    style={{
+      background: "#2b1818",
+      border: "1px solid #7f1d1d",
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 25,
+    }}
+  >
+    <h3
+      style={{
+        color: "#ef4444",
+        marginBottom: 20,
+      }}
+    >
+      ❌ Unknown Movies ({unknownMovies.length})
+    </h3>
+
+    {unknownMovies.map((row) => (
+      <div
+        key={row.movieName}
+        style={{
+          paddingBottom: 20,
+          marginBottom: 20,
+          borderBottom: "1px solid #444",
+        }}
+      >
+        <div
+          style={{
+            fontWeight: "bold",
+            marginBottom: 10,
+            fontSize: 17,
+          }}
+        >
+          🔴 {row.movieName}
+        </div>
+
+        <CreateMovieAliasButton
+          alias={row.movieName}
+          movies={movies}
+        />
+      </div>
+    ))}
+  </div>
+)}
+
+      {/* Preview Table */}
 
       <div
         style={{
@@ -40,7 +124,6 @@ export default function ImportPreview({
             <tr>
               <th style={th}>Cinema</th>
               <th style={th}>Movie</th>
-              <th style={th}>Version</th>
               <th style={th}>Tickets</th>
               <th style={th}>Revenue</th>
             </tr>
@@ -48,15 +131,79 @@ export default function ImportPreview({
 
           <tbody>
             {rows.map((row, index) => (
-              <tr key={index}>
-                <td style={td}>{row.cinema}</td>
-                <td style={td}>{row.movie}</td>
-                <td style={td}>{row.version}</td>
+              <tr
+                key={index}
+                style={{
+                  background:
+                    index % 2
+                      ? "#181818"
+                      : "#141414",
+                }}
+              >
                 <td style={td}>
-                  {Number(row.tickets).toLocaleString()}
+                  <strong>
+                    {row.cinemaName ||
+                      row.cinema}
+                  </strong>
+
+                  <br />
+
+                  {row.matchedCinema ? (
+                    <span
+                      style={{
+                        color: "#22c55e",
+                      }}
+                    >
+                      🟢 Matched
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        color: "#ef4444",
+                      }}
+                    >
+                      🔴 Unknown
+                    </span>
+                  )}
                 </td>
+
                 <td style={td}>
-                  {Number(row.revenue).toLocaleString()}
+                  <strong>
+                    {row.movieName ||
+                      row.movie}
+                  </strong>
+
+                  <br />
+
+                  {row.matchedMovie ? (
+                    <span
+                      style={{
+                        color: "#22c55e",
+                      }}
+                    >
+                      🟢 Matched
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        color: "#ef4444",
+                      }}
+                    >
+                      🔴 Unknown
+                    </span>
+                  )}
+                </td>
+
+                <td style={td}>
+                  {Number(
+                    row.audience || 0
+                  ).toLocaleString()}
+                </td>
+
+                <td style={td}>
+                  {Number(
+                    row.revenue || 0
+                  ).toLocaleString()}
                 </td>
               </tr>
             ))}
@@ -66,40 +213,40 @@ export default function ImportPreview({
 
       <button
         onClick={onImport}
-        disabled={loading || rows.length === 0}
+        disabled={
+          loading ||
+          rows.length === 0
+        }
         style={{
           marginTop: 25,
+          width: "100%",
           background: "#16a34a",
           color: "#fff",
           border: "none",
-          padding: "14px 28px",
+          padding: 15,
           borderRadius: 10,
-          cursor:
-            loading || rows.length === 0
-              ? "default"
-              : "pointer",
-          fontWeight: 700,
-          opacity:
-            loading || rows.length === 0
-              ? 0.6
-              : 1,
+          fontSize: 17,
+          fontWeight: "bold",
+          cursor: "pointer",
+          opacity: loading ? 0.6 : 1,
         }}
       >
         {loading
           ? "Importing..."
-          : "✅ Import Data"}
+          : `✅ Import ${rows.length} Records`}
       </button>
     </div>
   );
 }
 
 const th = {
-  padding: 12,
+  padding: 14,
   background: "#222",
   textAlign: "left",
+  borderBottom: "1px solid #444",
 };
 
 const td = {
-  padding: 12,
+  padding: 14,
   borderBottom: "1px solid #333",
 };

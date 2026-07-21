@@ -1,53 +1,139 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 
 import ImportUploader from "./ImportUploader";
 import ImportPreview from "./ImportPreview";
 
 import { importEngine } from "../../lib/import/engine";
 import { saveReports } from "../../lib/import/saveReports";
+import { supabase } from "../../lib/supabase";
 
 export default function ImportCenter({ dayId }) {
   const [rows, setRows] = useState([]);
+  const [lastFile, setLastFile] = useState(null);
+
+  const [cinemas, setCinemas] = useState([]);
+  const [movies, setMovies] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fileType, setFileType] = useState("");
   const [debug, setDebug] = useState("");
 
-  function detectType(file) {
-    const ext = file.name.split(".").pop().toLowerCase();
+  useEffect(() => {
+    async function loadData() {
+      const { data: cinemasData } =
+        await supabase
+          .from("cinemas")
+          .select("id,name")
+          .order("name");
 
-    if (["xlsx", "xls"].includes(ext)) return "Excel";
-    if (ext === "csv") return "CSV";
-    if (ext === "pdf") return "PDF";
-    if (["png", "jpg", "jpeg"].includes(ext)) return "Image";
-    if (ext === "txt") return "Text";
+      const { data: moviesData } =
+        await supabase
+          .from("movies")
+          .select("id,title")
+          .order("title");
+
+      setCinemas(cinemasData || []);
+      setMovies(moviesData || []);
+    }
+
+    loadData();
+  }, []);
+
+  function detectType(file) {
+    const ext = file.name
+      .split(".")
+      .pop()
+      .toLowerCase();
+
+    if (["xlsx", "xls"].includes(ext))
+      return "Excel";
+
+    if (ext === "csv")
+      return "CSV";
+
+    if (ext === "pdf")
+      return "PDF";
+
+    if (
+      ["png", "jpg", "jpeg"].includes(ext)
+    )
+      return "Image";
+
+    if (ext === "txt")
+      return "Text";
 
     return "Unknown";
   }
 
+  const reloadPreview = useCallback(async () => {
+    if (!lastFile) return;
+
+    try {
+      const parsed =
+        await importEngine(lastFile);
+
+      setRows(parsed);
+
+      setDebug(
+        `Rows Parsed : ${parsed.length}`
+      );
+
+    } catch (e) {
+      console.error(e);
+    }
+  }, [lastFile]);
+
+  useEffect(() => {
+    function refreshPreview() {
+      reloadPreview();
+    }
+
+    window.addEventListener(
+      "alias-created",
+      refreshPreview
+    );
+
+    return () =>
+      window.removeEventListener(
+        "alias-created",
+        refreshPreview
+      );
+  }, [reloadPreview]);
+
   async function handleFile(file) {
     try {
       setLoading(true);
+
       setRows([]);
       setError("");
       setDebug("");
 
+      setLastFile(file);
+
       setFileType(detectType(file));
 
-      console.log("Selected File:", file.name);
-
-      const parsed = await importEngine(file);
-
-      console.log("PARSED =", parsed);
-      console.log("COUNT =", parsed?.length);
-
-      setDebug(
-        `Rows Parsed : ${parsed?.length ?? 0}`
+      console.log(
+        "Selected File:",
+        file.name
       );
 
-      if (!parsed || parsed.length === 0) {
+      const parsed =
+        await importEngine(file);
+
+      console.log(parsed);
+
+      setDebug(
+        `Rows Parsed : ${parsed.length}`
+      );
+
+      if (!parsed.length) {
         setError(
           "No records found inside this file."
         );
@@ -60,7 +146,8 @@ export default function ImportCenter({ dayId }) {
       console.error(e);
 
       setError(
-        e.message || "Import failed."
+        e.message ||
+          "Import failed."
       );
 
     } finally {
@@ -72,10 +159,11 @@ export default function ImportCenter({ dayId }) {
     try {
       setLoading(true);
 
-      const result = await saveReports({
-        dayId,
-        rows,
-      });
+      const result =
+        await saveReports({
+          dayId,
+          rows,
+        });
 
       if (!result.success) {
         alert(result.message);
@@ -155,6 +243,8 @@ export default function ImportCenter({ dayId }) {
       {rows.length > 0 && (
         <ImportPreview
           rows={rows}
+          cinemas={cinemas}
+          movies={movies}
           loading={loading}
           onImport={handleImport}
         />

@@ -5,6 +5,10 @@ export default function ImportPreview({
   onImport,
   loading = false,
 }) {
+  const matchedRows = rows.filter(
+    (r) => r.matchedCinema && r.matchedMovie
+  ).length;
+
   return (
     <div
       style={{
@@ -16,20 +20,34 @@ export default function ImportPreview({
     >
       <h2>📋 Preview</h2>
 
-      <p
+      <div
         style={{
-          color: "#9ca3af",
+          display: "flex",
+          gap: 20,
+          flexWrap: "wrap",
           marginBottom: 20,
         }}
       >
-        {rows.length} records found
-      </p>
+        <div style={infoCard}>
+          📄 Records
+          <br />
+          <strong>{rows.length}</strong>
+        </div>
 
-      <div
-        style={{
-          overflowX: "auto",
-        }}
-      >
+        <div style={infoCard}>
+          ✅ Matched
+          <br />
+          <strong>{matchedRows}</strong>
+        </div>
+
+        <div style={infoCard}>
+          ❌ Not Matched
+          <br />
+          <strong>{rows.length - matchedRows}</strong>
+        </div>
+      </div>
+
+      <div style={{ overflowX: "auto" }}>
         <table
           style={{
             width: "100%",
@@ -40,7 +58,6 @@ export default function ImportPreview({
             <tr>
               <th style={th}>Cinema</th>
               <th style={th}>Movie</th>
-              <th style={th}>Version</th>
               <th style={th}>Tickets</th>
               <th style={th}>Revenue</th>
             </tr>
@@ -49,14 +66,60 @@ export default function ImportPreview({
           <tbody>
             {rows.map((row, index) => (
               <tr key={index}>
-                <td style={td}>{row.cinema}</td>
-                <td style={td}>{row.movie}</td>
-                <td style={td}>{row.version}</td>
                 <td style={td}>
-                  {Number(row.tickets).toLocaleString()}
+                  <strong>
+                    {row.cinemaName || row.cinema}
+                  </strong>
+
+                  <br />
+
+                  <span
+                    style={{
+                      color: row.matchedCinema
+                        ? "#22c55e"
+                        : "#ef4444",
+                      fontSize: 13,
+                    }}
+                  >
+                    {row.matchedCinema
+                      ? "🟢 Matched"
+                      : "🔴 Not Found"}
+                  </span>
                 </td>
+
                 <td style={td}>
-                  {Number(row.revenue).toLocaleString()}
+                  <strong>
+                    {row.movieName || row.movie}
+                  </strong>
+
+                  <br />
+
+                  <span
+                    style={{
+                      color: row.matchedMovie
+                        ? "#22c55e"
+                        : "#ef4444",
+                      fontSize: 13,
+                    }}
+                  >
+                    {row.matchedMovie
+                      ? "🟢 Matched"
+                      : "🔴 Not Found"}
+                  </span>
+                </td>
+
+                <td style={td}>
+                  {Number(
+                    row.tickets ??
+                      row.audience ??
+                      0
+                  ).toLocaleString()}
+                </td>
+
+                <td style={td}>
+                  {Number(
+                    row.revenue ?? 0
+                  ).toLocaleString()}
                 </td>
               </tr>
             ))}
@@ -66,7 +129,7 @@ export default function ImportPreview({
 
       <button
         onClick={onImport}
-        disabled={loading || rows.length === 0}
+        disabled={loading || matchedRows === 0}
         style={{
           marginTop: 25,
           background: "#16a34a",
@@ -75,23 +138,31 @@ export default function ImportPreview({
           padding: "14px 28px",
           borderRadius: 10,
           cursor:
-            loading || rows.length === 0
+            loading || matchedRows === 0
               ? "default"
               : "pointer",
           fontWeight: 700,
           opacity:
-            loading || rows.length === 0
+            loading || matchedRows === 0
               ? 0.6
               : 1,
         }}
       >
         {loading
           ? "Importing..."
-          : "✅ Import Data"}
+          : `✅ Import ${matchedRows} Records`}
       </button>
     </div>
   );
 }
+
+const infoCard = {
+  background: "#222",
+  padding: "12px 18px",
+  borderRadius: 10,
+  minWidth: 130,
+  textAlign: "center",
+};
 
 const th = {
   padding: 12,

@@ -40,7 +40,7 @@ export default function ImportCenter({ dayId }) {
 
       const parsed = await importEngine(file);
 
-      console.log("PARSED =", parsed);
+      console.log(JSON.stringify(parsed, null, 2));
       console.log("COUNT =", parsed?.length);
 
       setDebug(
