@@ -1,12 +1,27 @@
 "use client";
 
-export default function ImportPreview({
-  rows = [],
-  onImport,
-  loading = false,
-}) {
+import CreateCinemaAliasButton from "./CreateCinemaAliasButton";
+import CreateMovieAliasButton from "./CreateMovieAliasButton";
+
+export default function ImportPreview(props) {
+  const {
+    rows = [],
+    cinemas = [],
+    movies = [],
+    onImport,
+    loading = false,
+  } = props || {};
+
   const matchedRows = rows.filter(
     (r) => r.matchedCinema && r.matchedMovie
+  ).length;
+
+  const cinemaNotMatched = rows.filter(
+    (r) => !r.matchedCinema
+  ).length;
+
+  const movieNotMatched = rows.filter(
+    (r) => !r.matchedMovie
   ).length;
 
   return (
@@ -18,36 +33,31 @@ export default function ImportPreview({
         marginTop: 25,
       }}
     >
-      <h2>📋 Preview</h2>
+      <h2 style={{ marginBottom: 20 }}>
+        📋 Import Preview
+      </h2>
 
       <div
         style={{
           display: "flex",
-          gap: 20,
+          gap: 15,
           flexWrap: "wrap",
-          marginBottom: 20,
+          marginBottom: 25,
         }}
       >
-        <div style={infoCard}>
-          📄 Records
-          <br />
-          <strong>{rows.length}</strong>
-        </div>
-
-        <div style={infoCard}>
-          ✅ Matched
-          <br />
-          <strong>{matchedRows}</strong>
-        </div>
-
-        <div style={infoCard}>
-          ❌ Not Matched
-          <br />
-          <strong>{rows.length - matchedRows}</strong>
-        </div>
+        <Card title="📄 Records" value={rows.length} />
+        <Card title="✅ Ready" value={matchedRows} />
+        <Card title="🎬 Cinema Missing" value={cinemaNotMatched} />
+        <Card title="🎥 Movie Missing" value={movieNotMatched} />
       </div>
 
-      <div style={{ overflowX: "auto" }}>
+      <div
+        style={{
+          overflowX: "auto",
+          maxHeight: 650,
+          overflowY: "auto",
+        }}
+      >
         <table
           style={{
             width: "100%",
@@ -64,84 +74,100 @@ export default function ImportPreview({
           </thead>
 
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={index}>
-                <td style={td}>
-                  <strong>
-                    {row.cinemaName || row.cinema}
-                  </strong>
+            {rows.map((row, index) => {
+              const cinema =
+                row.cinemaName || row.cinema || "";
 
-                  <br />
+              const movie =
+                row.movieName || row.movie || "";
 
-                  <span
-                    style={{
-                      color: row.matchedCinema
-                        ? "#22c55e"
-                        : "#ef4444",
-                      fontSize: 13,
-                    }}
-                  >
-                    {row.matchedCinema
-                      ? "🟢 Matched"
-                      : "🔴 Not Found"}
-                  </span>
-                </td>
+              return (
+                <tr
+                  key={index}
+                  style={{
+                    background:
+                      index % 2
+                        ? "#181818"
+                        : "#141414",
+                  }}
+                >
+                  <td style={td}>
+                    <b>{cinema}</b>
 
-                <td style={td}>
-                  <strong>
-                    {row.movieName || row.movie}
-                  </strong>
+                    {row.matchedCinema ? (
+                      <div style={ok}>
+                        🟢 Matched
+                      </div>
+                    ) : (
+                      <>
+                        <div style={bad}>
+                          🔴 Not Found
+                        </div>
 
-                  <br />
+                        <CreateCinemaAliasButton
+                          alias={cinema}
+                          cinemas={cinemas || []}
+                        />
+                      </>
+                    )}
+                  </td>
 
-                  <span
-                    style={{
-                      color: row.matchedMovie
-                        ? "#22c55e"
-                        : "#ef4444",
-                      fontSize: 13,
-                    }}
-                  >
-                    {row.matchedMovie
-                      ? "🟢 Matched"
-                      : "🔴 Not Found"}
-                  </span>
-                </td>
+                  <td style={td}>
+                    <b>{movie}</b>
 
-                <td style={td}>
-                  {Number(
-                    row.tickets ??
-                      row.audience ??
-                      0
-                  ).toLocaleString()}
-                </td>
+                    {row.matchedMovie ? (
+                      <div style={ok}>
+                        🟢 Matched
+                      </div>
+                    ) : (
+                      <>
+                        <div style={bad}>
+                          🔴 Not Found
+                        </div>
 
-                <td style={td}>
-                  {Number(
-                    row.revenue ?? 0
-                  ).toLocaleString()}
-                </td>
-              </tr>
-            ))}
+                        <CreateMovieAliasButton
+                          alias={movie}
+                          movies={movies || []}
+                        />
+                      </>
+                    )}
+                  </td>
+
+                  <td style={td}>
+                    {Number(
+                      row.tickets ??
+                        row.audience ??
+                        0
+                    ).toLocaleString()}
+                  </td>
+
+                  <td style={td}>
+                    {Number(
+                      row.revenue ?? 0
+                    ).toLocaleString()}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <button
         onClick={onImport}
-        disabled={loading || matchedRows === 0}
+        disabled={
+          loading || matchedRows === 0
+        }
         style={{
           marginTop: 25,
+          width: "100%",
           background: "#16a34a",
           color: "#fff",
           border: "none",
-          padding: "14px 28px",
+          padding: 15,
           borderRadius: 10,
-          cursor:
-            loading || matchedRows === 0
-              ? "default"
-              : "pointer",
           fontWeight: 700,
+          fontSize: 16,
           opacity:
             loading || matchedRows === 0
               ? 0.6
@@ -156,21 +182,53 @@ export default function ImportPreview({
   );
 }
 
+function Card({ title, value }) {
+  return (
+    <div style={infoCard}>
+      <div>{title}</div>
+
+      <div
+        style={{
+          fontSize: 26,
+          fontWeight: 700,
+          marginTop: 8,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+const ok = {
+  color: "#22c55e",
+  marginTop: 5,
+  fontSize: 13,
+};
+
+const bad = {
+  color: "#ef4444",
+  marginTop: 5,
+  fontSize: 13,
+};
+
 const infoCard = {
   background: "#222",
-  padding: "12px 18px",
-  borderRadius: 10,
-  minWidth: 130,
+  padding: 16,
+  borderRadius: 12,
+  minWidth: 160,
   textAlign: "center",
+  border: "1px solid #333",
 };
 
 const th = {
-  padding: 12,
+  padding: 14,
   background: "#222",
   textAlign: "left",
 };
 
 const td = {
-  padding: 12,
+  padding: 14,
   borderBottom: "1px solid #333",
+  verticalAlign: "top",
 };

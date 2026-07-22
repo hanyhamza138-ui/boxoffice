@@ -1,51 +1,130 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import ImportUploader from "./ImportUploader";
 import ImportPreview from "./ImportPreview";
 
 import { importEngine } from "../../lib/import/engine";
 import { saveReports } from "../../lib/import/saveReports";
+import { supabase } from "../../lib/supabase";
 
 export default function ImportCenter({ dayId }) {
   const [rows, setRows] = useState([]);
+  const [cinemas, setCinemas] = useState([]);
+  const [movies, setMovies] = useState([]);
+
+  const [lastFile, setLastFile] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fileType, setFileType] = useState("");
   const [debug, setDebug] = useState("");
+  const [fileType, setFileType] = useState("");
+
+  /* ===========================
+     Load Cinemas & Movies
+  =========================== */
+
+  useEffect(() => {
+    async function loadLists() {
+      const [{ data: cinemaData }, { data: movieData }] =
+        await Promise.all([
+          supabase
+            .from("cinemas")
+            .select("id,name")
+            .order("name"),
+
+          supabase
+            .from("movies")
+            .select("id,title")
+            .order("title"),
+        ]);
+
+      setCinemas(cinemaData || []);
+      setMovies(movieData || []);
+    }
+
+    loadLists();
+  }, []);
+
+  /* ===========================
+     Detect File Type
+  =========================== */
 
   function detectType(file) {
-    const ext = file.name.split(".").pop().toLowerCase();
+    const ext = file.name
+      .split(".")
+      .pop()
+      .toLowerCase();
 
-    if (["xlsx", "xls"].includes(ext)) return "Excel";
-    if (ext === "csv") return "CSV";
-    if (ext === "pdf") return "PDF";
-    if (["png", "jpg", "jpeg"].includes(ext)) return "Image";
-    if (ext === "txt") return "Text";
+    if (["xlsx", "xls"].includes(ext))
+      return "Excel";
+
+    if (ext === "csv")
+      return "CSV";
+
+    if (ext === "pdf")
+      return "PDF";
+
+    if (["png", "jpg", "jpeg"].includes(ext))
+      return "Image";
+
+    if (ext === "txt")
+      return "Text";
 
     return "Unknown";
   }
 
+  /* ===========================
+     Reload Preview
+  =========================== */
+
+  const reloadPreview = useCallback(async () => {
+    if (!lastFile) return;
+
+    try {
+      const parsed = await importEngine(lastFile);
+
+      setRows(parsed || []);
+
+      setDebug(
+        `Rows Parsed : ${parsed?.length || 0}`
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  }, [lastFile]);
+
+  useEffect(() => {
+    window.addEventListener(
+      "alias-created",
+      reloadPreview
+    );
+
+    return () =>
+      window.removeEventListener(
+        "alias-created",
+        reloadPreview
+      );
+  }, [reloadPreview]);
+
+  /* ===========================
+     Parse File
+  =========================== */
+
   async function handleFile(file) {
     try {
       setLoading(true);
+
       setRows([]);
       setError("");
       setDebug("");
 
+      setLastFile(file);
+
       setFileType(detectType(file));
 
-      console.log("Selected File:", file.name);
-
       const parsed = await importEngine(file);
-
-      console.log(JSON.stringify(parsed, null, 2));
-      console.log("COUNT =", parsed?.length);
-
-      setDebug(
-        `Rows Parsed : ${parsed?.length ?? 0}`
-      );
 
       if (!parsed || parsed.length === 0) {
         setError(
@@ -56,17 +135,23 @@ export default function ImportCenter({ dayId }) {
 
       setRows(parsed);
 
-    } catch (e) {
-      console.error(e);
+      setDebug(
+        `Rows Parsed : ${parsed.length}`
+      );
+    } catch (err) {
+      console.error(err);
 
       setError(
-        e.message || "Import failed."
+        err.message || "Import failed."
       );
-
     } finally {
       setLoading(false);
     }
   }
+
+  /* ===========================
+     Import
+  =========================== */
 
   async function handleImport() {
     try {
@@ -87,12 +172,12 @@ export default function ImportCenter({ dayId }) {
       );
 
       setRows([]);
-      setFileType("");
       setDebug("");
       setError("");
+      setFileType("");
+    } catch (err) {
+      console.error(err);
 
-    } catch (e) {
-      console.error(e);
       alert("Import failed.");
     } finally {
       setLoading(false);
@@ -112,26 +197,26 @@ export default function ImportCenter({ dayId }) {
         onSelect={handleFile}
       />
 
-      {fileType && (
+      {!!fileType && (
         <div
           style={{
             background: "#1f2937",
-            borderRadius: 10,
             padding: 15,
+            borderRadius: 10,
             color: "#4ade80",
-            fontWeight: "bold",
+            fontWeight: 700,
           }}
         >
           ✔ Detected File Type : {fileType}
         </div>
       )}
 
-      {debug && (
+      {!!debug && (
         <div
           style={{
             background: "#172554",
-            borderRadius: 10,
             padding: 15,
+            borderRadius: 10,
             color: "#93c5fd",
           }}
         >
@@ -139,12 +224,12 @@ export default function ImportCenter({ dayId }) {
         </div>
       )}
 
-      {error && (
+      {!!error && (
         <div
           style={{
             background: "#7f1d1d",
-            borderRadius: 10,
             padding: 15,
+            borderRadius: 10,
             color: "#fff",
           }}
         >
@@ -155,6 +240,8 @@ export default function ImportCenter({ dayId }) {
       {rows.length > 0 && (
         <ImportPreview
           rows={rows}
+          cinemas={cinemas}
+          movies={movies}
           loading={loading}
           onImport={handleImport}
         />

@@ -2,41 +2,27 @@
 
 import CreateCinemaAliasButton from "./CreateCinemaAliasButton";
 import CreateMovieAliasButton from "./CreateMovieAliasButton";
-export default function ImportPreview({
-  rows = [],
-  cinemas = [],
-  loading = false,
-  onImport,
-}) {
-  const unknownCinemas = [
-    ...new Map(
-      rows
-        .filter(
-          (r) =>
-            !r.matchedCinema &&
-            (r.cinemaName || r.cinema)
-        )
-        .map((r) => [
-          r.cinemaName || r.cinema,
-          r,
-        ])
-    ).values(),
-  ];
 
-  const unknownMovies = [
-    ...new Map(
-      rows
-        .filter(
-          (r) =>
-            !r.matchedMovie &&
-            (r.movieName || r.movie)
-        )
-        .map((r) => [
-          r.movieName || r.movie,
-          r,
-        ])
-    ).values(),
-  ];
+export default function ImportPreview(props) {
+  const {
+    rows = [],
+    cinemas = [],
+    movies = [],
+    onImport,
+    loading = false,
+  } = props || {};
+
+  const matchedRows = rows.filter(
+    (r) => r.matchedCinema && r.matchedMovie
+  ).length;
+
+  const cinemaNotMatched = rows.filter(
+    (r) => !r.matchedCinema
+  ).length;
+
+  const movieNotMatched = rows.filter(
+    (r) => !r.matchedMovie
+  ).length;
 
   return (
     <div
@@ -47,71 +33,29 @@ export default function ImportPreview({
         marginTop: 25,
       }}
     >
-      <h2>📋 Import Preview</h2>
+      <h2 style={{ marginBottom: 20 }}>
+        📋 Import Preview
+      </h2>
 
-      <p
-        style={{
-          color: "#9ca3af",
-          marginBottom: 20,
-        }}
-      >
-        Found <b>{rows.length}</b> records
-      </p>
-
-      {/* Unknown Movies */}
-
-{unknownMovies.length > 0 && (
-  <div
-    style={{
-      background: "#2b1818",
-      border: "1px solid #7f1d1d",
-      borderRadius: 12,
-      padding: 20,
-      marginBottom: 25,
-    }}
-  >
-    <h3
-      style={{
-        color: "#ef4444",
-        marginBottom: 20,
-      }}
-    >
-      ❌ Unknown Movies ({unknownMovies.length})
-    </h3>
-
-    {unknownMovies.map((row) => (
       <div
-        key={row.movieName}
         style={{
-          paddingBottom: 20,
-          marginBottom: 20,
-          borderBottom: "1px solid #444",
+          display: "flex",
+          gap: 15,
+          flexWrap: "wrap",
+          marginBottom: 25,
         }}
       >
-        <div
-          style={{
-            fontWeight: "bold",
-            marginBottom: 10,
-            fontSize: 17,
-          }}
-        >
-          🔴 {row.movieName}
-        </div>
-
-        <CreateMovieAliasButton
-          alias={row.movieName}
-          movies={movies}
-        />
+        <Card title="📄 Records" value={rows.length} />
+        <Card title="✅ Ready" value={matchedRows} />
+        <Card title="🎬 Cinema Missing" value={cinemaNotMatched} />
+        <Card title="🎥 Movie Missing" value={movieNotMatched} />
       </div>
-    ))}
-  </div>
-)}
-
-      {/* Preview Table */}
 
       <div
         style={{
           overflowX: "auto",
+          maxHeight: 650,
+          overflowY: "auto",
         }}
       >
         <table
@@ -130,83 +74,81 @@ export default function ImportPreview({
           </thead>
 
           <tbody>
-            {rows.map((row, index) => (
-              <tr
-                key={index}
-                style={{
-                  background:
-                    index % 2
-                      ? "#181818"
-                      : "#141414",
-                }}
-              >
-                <td style={td}>
-                  <strong>
-                    {row.cinemaName ||
-                      row.cinema}
-                  </strong>
+            {rows.map((row, index) => {
+              const cinema =
+                row.cinemaName || row.cinema || "";
 
-                  <br />
+              const movie =
+                row.movieName || row.movie || "";
 
-                  {row.matchedCinema ? (
-                    <span
-                      style={{
-                        color: "#22c55e",
-                      }}
-                    >
-                      🟢 Matched
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        color: "#ef4444",
-                      }}
-                    >
-                      🔴 Unknown
-                    </span>
-                  )}
-                </td>
+              return (
+                <tr
+                  key={index}
+                  style={{
+                    background:
+                      index % 2
+                        ? "#181818"
+                        : "#141414",
+                  }}
+                >
+                  <td style={td}>
+                    <b>{cinema}</b>
 
-                <td style={td}>
-                  <strong>
-                    {row.movieName ||
-                      row.movie}
-                  </strong>
+                    {row.matchedCinema ? (
+                      <div style={ok}>
+                        🟢 Matched
+                      </div>
+                    ) : (
+                      <>
+                        <div style={bad}>
+                          🔴 Not Found
+                        </div>
 
-                  <br />
+                        <CreateCinemaAliasButton
+                          alias={cinema}
+                          cinemas={cinemas || []}
+                        />
+                      </>
+                    )}
+                  </td>
 
-                  {row.matchedMovie ? (
-                    <span
-                      style={{
-                        color: "#22c55e",
-                      }}
-                    >
-                      🟢 Matched
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        color: "#ef4444",
-                      }}
-                    >
-                      🔴 Unknown
-                    </span>
-                  )}
-                </td>
+                  <td style={td}>
+                    <b>{movie}</b>
 
-                <td style={td}>
-                  {Number(
-                    row.audience || 0
-                  ).toLocaleString()}
-                </td>
+                    {row.matchedMovie ? (
+                      <div style={ok}>
+                        🟢 Matched
+                      </div>
+                    ) : (
+                      <>
+                        <div style={bad}>
+                          🔴 Not Found
+                        </div>
 
-                <td style={td}>
-                  {Number(
-                    row.revenue || 0
-                  ).toLocaleString()}
-                </td>
-              </tr>
-            ))}
+                        <CreateMovieAliasButton
+                          alias={movie}
+                          movies={movies || []}
+                        />
+                      </>
+                    )}
+                  </td>
+
+                  <td style={td}>
+                    {Number(
+                      row.tickets ??
+                        row.audience ??
+                        0
+                    ).toLocaleString()}
+                  </td>
+
+                  <td style={td}>
+                    {Number(
+                      row.revenue ?? 0
+                    ).toLocaleString()}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -214,8 +156,7 @@ export default function ImportPreview({
       <button
         onClick={onImport}
         disabled={
-          loading ||
-          rows.length === 0
+          loading || matchedRows === 0
         }
         style={{
           marginTop: 25,
@@ -225,28 +166,69 @@ export default function ImportPreview({
           border: "none",
           padding: 15,
           borderRadius: 10,
-          fontSize: 17,
-          fontWeight: "bold",
-          cursor: "pointer",
-          opacity: loading ? 0.6 : 1,
+          fontWeight: 700,
+          fontSize: 16,
+          opacity:
+            loading || matchedRows === 0
+              ? 0.6
+              : 1,
         }}
       >
         {loading
           ? "Importing..."
-          : `✅ Import ${rows.length} Records`}
+          : `✅ Import ${matchedRows} Records`}
       </button>
     </div>
   );
 }
 
+function Card({ title, value }) {
+  return (
+    <div style={infoCard}>
+      <div>{title}</div>
+
+      <div
+        style={{
+          fontSize: 26,
+          fontWeight: 700,
+          marginTop: 8,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+const ok = {
+  color: "#22c55e",
+  marginTop: 5,
+  fontSize: 13,
+};
+
+const bad = {
+  color: "#ef4444",
+  marginTop: 5,
+  fontSize: 13,
+};
+
+const infoCard = {
+  background: "#222",
+  padding: 16,
+  borderRadius: 12,
+  minWidth: 160,
+  textAlign: "center",
+  border: "1px solid #333",
+};
+
 const th = {
   padding: 14,
   background: "#222",
   textAlign: "left",
-  borderBottom: "1px solid #444",
 };
 
 const td = {
   padding: 14,
   borderBottom: "1px solid #333",
+  verticalAlign: "top",
 };

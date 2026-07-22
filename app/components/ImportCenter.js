@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import ImportUploader from "./ImportUploader";
 import ImportPreview from "./ImportPreview";
@@ -15,36 +11,45 @@ import { supabase } from "../../lib/supabase";
 
 export default function ImportCenter({ dayId }) {
   const [rows, setRows] = useState([]);
-  const [lastFile, setLastFile] = useState(null);
-
   const [cinemas, setCinemas] = useState([]);
   const [movies, setMovies] = useState([]);
 
+  const [lastFile, setLastFile] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fileType, setFileType] = useState("");
   const [debug, setDebug] = useState("");
+  const [fileType, setFileType] = useState("");
+
+  /* ===========================
+     Load Cinemas & Movies
+  =========================== */
 
   useEffect(() => {
-    async function loadData() {
-      const { data: cinemasData } =
-        await supabase
-          .from("cinemas")
-          .select("id,name")
-          .order("name");
+    async function loadLists() {
+      const [{ data: cinemaData }, { data: movieData }] =
+        await Promise.all([
+          supabase
+            .from("cinemas")
+            .select("id,name")
+            .order("name"),
 
-      const { data: moviesData } =
-        await supabase
-          .from("movies")
-          .select("id,title")
-          .order("title");
+          supabase
+            .from("movies")
+            .select("id,title")
+            .order("title"),
+        ]);
 
-      setCinemas(cinemasData || []);
-      setMovies(moviesData || []);
+      setCinemas(cinemaData || []);
+      setMovies(movieData || []);
     }
 
-    loadData();
+    loadLists();
   }, []);
+
+  /* ===========================
+     Detect File Type
+  =========================== */
 
   function detectType(file) {
     const ext = file.name
@@ -61,9 +66,7 @@ export default function ImportCenter({ dayId }) {
     if (ext === "pdf")
       return "PDF";
 
-    if (
-      ["png", "jpg", "jpeg"].includes(ext)
-    )
+    if (["png", "jpg", "jpeg"].includes(ext))
       return "Image";
 
     if (ext === "txt")
@@ -72,40 +75,42 @@ export default function ImportCenter({ dayId }) {
     return "Unknown";
   }
 
+  /* ===========================
+     Reload Preview
+  =========================== */
+
   const reloadPreview = useCallback(async () => {
     if (!lastFile) return;
 
     try {
-      const parsed =
-        await importEngine(lastFile);
+      const parsed = await importEngine(lastFile);
 
-      setRows(parsed);
+      setRows(parsed || []);
 
       setDebug(
-        `Rows Parsed : ${parsed.length}`
+        `Rows Parsed : ${parsed?.length || 0}`
       );
-
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     }
   }, [lastFile]);
 
   useEffect(() => {
-    function refreshPreview() {
-      reloadPreview();
-    }
-
     window.addEventListener(
       "alias-created",
-      refreshPreview
+      reloadPreview
     );
 
     return () =>
       window.removeEventListener(
         "alias-created",
-        refreshPreview
+        reloadPreview
       );
   }, [reloadPreview]);
+
+  /* ===========================
+     Parse File
+  =========================== */
 
   async function handleFile(file) {
     try {
@@ -119,21 +124,9 @@ export default function ImportCenter({ dayId }) {
 
       setFileType(detectType(file));
 
-      console.log(
-        "Selected File:",
-        file.name
-      );
+      const parsed = await importEngine(file);
 
-      const parsed =
-        await importEngine(file);
-
-      console.log(parsed);
-
-      setDebug(
-        `Rows Parsed : ${parsed.length}`
-      );
-
-      if (!parsed.length) {
+      if (!parsed || parsed.length === 0) {
         setError(
           "No records found inside this file."
         );
@@ -142,28 +135,32 @@ export default function ImportCenter({ dayId }) {
 
       setRows(parsed);
 
-    } catch (e) {
-      console.error(e);
+      setDebug(
+        `Rows Parsed : ${parsed.length}`
+      );
+    } catch (err) {
+      console.error(err);
 
       setError(
-        e.message ||
-          "Import failed."
+        err.message || "Import failed."
       );
-
     } finally {
       setLoading(false);
     }
   }
 
+  /* ===========================
+     Import
+  =========================== */
+
   async function handleImport() {
     try {
       setLoading(true);
 
-      const result =
-        await saveReports({
-          dayId,
-          rows,
-        });
+      const result = await saveReports({
+        dayId,
+        rows,
+      });
 
       if (!result.success) {
         alert(result.message);
@@ -175,12 +172,12 @@ export default function ImportCenter({ dayId }) {
       );
 
       setRows([]);
-      setFileType("");
       setDebug("");
       setError("");
+      setFileType("");
+    } catch (err) {
+      console.error(err);
 
-    } catch (e) {
-      console.error(e);
       alert("Import failed.");
     } finally {
       setLoading(false);
@@ -200,26 +197,26 @@ export default function ImportCenter({ dayId }) {
         onSelect={handleFile}
       />
 
-      {fileType && (
+      {!!fileType && (
         <div
           style={{
             background: "#1f2937",
-            borderRadius: 10,
             padding: 15,
+            borderRadius: 10,
             color: "#4ade80",
-            fontWeight: "bold",
+            fontWeight: 700,
           }}
         >
           ✔ Detected File Type : {fileType}
         </div>
       )}
 
-      {debug && (
+      {!!debug && (
         <div
           style={{
             background: "#172554",
-            borderRadius: 10,
             padding: 15,
+            borderRadius: 10,
             color: "#93c5fd",
           }}
         >
@@ -227,12 +224,12 @@ export default function ImportCenter({ dayId }) {
         </div>
       )}
 
-      {error && (
+      {!!error && (
         <div
           style={{
             background: "#7f1d1d",
-            borderRadius: 10,
             padding: 15,
+            borderRadius: 10,
             color: "#fff",
           }}
         >

@@ -1,27 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { createCinemaAlias } from "../actions/aliases";
 
 export default function CreateCinemaAliasButton({
   alias,
-  cinemas = [],
+  cinemas,
 }) {
-  const [cinemaId, setCinemaId] =
-    useState("");
+  const router = useRouter();
 
-  const [saving, setSaving] =
-    useState(false);
+  const [cinemaId, setCinemaId] = useState("");
 
-  async function handleSave() {
+  const [pending, startTransition] =
+    useTransition();
+
+  function save() {
     if (!cinemaId) {
-      alert("Select cinema first");
+      alert("Choose cinema");
       return;
     }
 
-    try {
-      setSaving(true);
-
+    startTransition(async () => {
       const result =
         await createCinemaAlias({
           alias,
@@ -33,30 +33,18 @@ export default function CreateCinemaAliasButton({
         return;
       }
 
-      window.dispatchEvent(
-        new Event("alias-created")
-      );
+      alert("✅ Alias Created");
 
-      alert("✅ Alias created");
-
-    } catch (e) {
-      console.error(e);
-
-      alert("Failed to create alias");
-
-    } finally {
-      setSaving(false);
-    }
+      router.refresh();
+    });
   }
 
   return (
     <div
       style={{
-        marginTop: 10,
         display: "flex",
         gap: 8,
-        alignItems: "center",
-        flexWrap: "wrap",
+        marginTop: 8,
       }}
     >
       <select
@@ -64,14 +52,6 @@ export default function CreateCinemaAliasButton({
         onChange={(e) =>
           setCinemaId(e.target.value)
         }
-        style={{
-          padding: 8,
-          borderRadius: 8,
-          background: "#222",
-          color: "#fff",
-          border: "1px solid #444",
-          minWidth: 220,
-        }}
       >
         <option value="">
           Select Cinema
@@ -88,21 +68,10 @@ export default function CreateCinemaAliasButton({
       </select>
 
       <button
-        onClick={handleSave}
-        disabled={saving}
-        style={{
-          padding: "8px 14px",
-          border: "none",
-          borderRadius: 8,
-          background: "#16a34a",
-          color: "#fff",
-          cursor: "pointer",
-          fontWeight: 700,
-        }}
+        onClick={save}
+        disabled={pending}
       >
-        {saving
-          ? "Saving..."
-          : "💾 Save Alias"}
+        ➕ Create Alias
       </button>
     </div>
   );
