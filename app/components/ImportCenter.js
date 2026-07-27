@@ -115,7 +115,7 @@ export default function ImportCenter({ dayId }) {
   async function handleFile(file) {
     try {
       setLoading(true);
-
+    console.log("DAY ID =", dayId);
       setRows([]);
       setError("");
       setDebug("");
