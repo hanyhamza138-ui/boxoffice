@@ -1,0 +1,31 @@
+{
+  "name": "Renaissance",
+
+  "detect": {
+    "contains": [
+      "الفيلم",
+      "الصافي"
+    ]
+  },
+
+  "date": {
+    "mode": "search"
+  },
+
+  "cinema": {
+    "mode": "rowAboveHeader"
+  },
+
+  "columns": {
+    "movie": "الفيلم",
+    "tickets": "التذاكر",
+    "revenue": "الصافي"
+  },
+
+  "stopWords": [
+    "الإجمالي",
+    "الاجمالي",
+    "TOTAL",
+    "Grand Total"
+  ]
+}

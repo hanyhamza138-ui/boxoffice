@@ -177,7 +177,7 @@ margin: 0,
     <Link href="/admin/add">
       <button
         style={{
-          padding: "12px 20px",
+          padding: "16px 24px",
           border: "none",
           borderRadius: 8,
           cursor: "pointer",
@@ -194,15 +194,15 @@ margin: 0,
       display: "grid",
       gridTemplateColumns:
         "repeat(auto-fit,minmax(220px,1fr))",
-      gap: 20,
+      gap: 24,
       marginBottom: 25,
     }}
   >
     <div
       style={{
         background: "#0f172a",
-        padding: 20,
-        borderRadius: 12,
+        padding: 24,
+        borderRadius: 16,
       }}
     >
       <h3>📅 Weekly Revenue</h3>
@@ -212,8 +212,8 @@ margin: 0,
     <div
       style={{
         background: "#0f172a",
-        padding: 20,
-        borderRadius: 12,
+        padding: 24,
+        borderRadius: 16,
       }}
     >
       <h3>👥 Weekly Audience</h3>
@@ -223,8 +223,8 @@ margin: 0,
     <div
       style={{
         background: "#0f172a",
-        padding: 20,
-        borderRadius: 12,
+        padding: 24,
+        borderRadius: 16,
       }}
     >
       <h3>📊 Records</h3>
@@ -234,8 +234,8 @@ margin: 0,
     <div
       style={{
         background: "#0f172a",
-        padding: 20,
-        borderRadius: 12,
+        padding: 24,
+        borderRadius: 16,
       }}
     >
       <h3>🏆 Top Movie (7 Days)</h3>
@@ -248,15 +248,15 @@ margin: 0,
       display: "grid",
       gridTemplateColumns:
         "repeat(auto-fit,minmax(220px,1fr))",
-      gap: 20,
-      marginBottom: 40,
+      gap: 24,
+      marginBottom: 44,
     }}
   >
     <div
       style={{
         background: "#1c1c1c",
-        padding: 20,
-        borderRadius: 12,
+        padding: 24,
+        borderRadius: 16,
       }}
     >
       <h3>🎬 Movies</h3>
@@ -266,8 +266,8 @@ margin: 0,
     <div
       style={{
         background: "#1c1c1c",
-        padding: 20,
-        borderRadius: 12,
+        padding: 24,
+        borderRadius: 16,
       }}
     >
       <h3>💰 Total Revenue</h3>
@@ -288,8 +288,8 @@ margin: 0,
     <div
       style={{
         background: "#1c1c1c",
-        padding: 20,
-        borderRadius: 12,
+        padding: 26,
+        borderRadius: 14,
       }}
     >
       <h3>🏆 All Time Top Movie</h3>
@@ -310,7 +310,7 @@ margin: 0,
   key={movie.id}
   style={{
     background: "#1c1c1c",
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: "visible",
     position: "relative",
     boxShadow: "0 10px 25px rgba(0,0,0,.3)",
@@ -355,8 +355,8 @@ margin: 0,
         <div
           style={{
             position:"absolute",
-            top:15,
-            left:15,
+            top:18,
+            left:18,
             background:"#dc2626",
             color:"white",
             width:45,
@@ -412,17 +412,17 @@ whiteSpace: "nowrap",
         <div
   style={{
     display:"flex",
-    gap:8,
+    gap:10,
     flexWrap:"wrap",
-    marginTop:10,
+    marginTop:18,
   }}
 >
 
   <span
     style={{
       background:"#222",
-      padding:"6px 10px",
-      borderRadius:20,
+      padding:"16px 18px",
+      borderRadius:25,
       fontSize:17,
       fontFamily:"Tahoma",
     }}
@@ -433,7 +433,7 @@ whiteSpace: "nowrap",
   <span
     style={{
       background:"#222",
-      padding:"6px 10px",
+      padding:"10px 16px",
       borderRadius:20,
       fontSize:17,
     }}
