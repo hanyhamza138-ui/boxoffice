@@ -22,7 +22,8 @@ export default function ImportCenter({ dayId }) {
   const [fileType, setFileType] = useState("");
 
   // التاريخ الذى يختاره المستخدم
-  const [reportDate, setReportDate] = useState("");
+  const [reportDate, setReportDate] =
+    useState("");
 
   /* ===========================
      Load Cinemas & Movies
@@ -30,18 +31,20 @@ export default function ImportCenter({ dayId }) {
 
   useEffect(() => {
     async function loadLists() {
-      const [{ data: cinemaData }, { data: movieData }] =
-        await Promise.all([
-          supabase
-            .from("cinemas")
-            .select("id,name")
-            .order("name"),
+      const [
+        { data: cinemaData },
+        { data: movieData },
+      ] = await Promise.all([
+        supabase
+          .from("cinemas")
+          .select("id,name")
+          .order("name"),
 
-          supabase
-            .from("movies")
-            .select("id,title")
-            .order("title"),
-        ]);
+        supabase
+          .from("movies")
+          .select("id,title")
+          .order("title"),
+      ]);
 
       setCinemas(cinemaData || []);
       setMovies(movieData || []);
@@ -69,7 +72,9 @@ export default function ImportCenter({ dayId }) {
     if (ext === "pdf")
       return "PDF";
 
-    if (["png", "jpg", "jpeg"].includes(ext))
+    if (
+      ["png", "jpg", "jpeg"].includes(ext)
+    )
       return "Image";
 
     if (ext === "txt")
@@ -82,21 +87,25 @@ export default function ImportCenter({ dayId }) {
      Reload Preview
   =========================== */
 
-  const reloadPreview = useCallback(async () => {
-    if (!lastFile) return;
+  const reloadPreview =
+    useCallback(async () => {
+      if (!lastFile) return;
 
-    try {
-      const parsed = await importEngine(lastFile);
+      try {
+        const parsed =
+          await importEngine(lastFile);
 
-      setRows(parsed.rows || []);
+        setRows(parsed.rows || []);
 
-      setDebug(
-        `Rows Parsed : ${parsed.rows?.length || 0}`
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  }, [lastFile]);
+        setDebug(
+          `Rows Parsed : ${
+            parsed.rows?.length || 0
+          }`
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    }, [lastFile]);
 
   useEffect(() => {
     window.addEventListener(
@@ -118,7 +127,9 @@ export default function ImportCenter({ dayId }) {
   async function handleFile(file) {
     try {
       if (!reportDate) {
-        alert("Please select report date first.");
+        alert(
+          "Please select report date first."
+        );
         return;
       }
 
@@ -132,7 +143,8 @@ export default function ImportCenter({ dayId }) {
 
       setFileType(detectType(file));
 
-      const parsed = await importEngine(file);
+      const parsed =
+        await importEngine(file);
 
       if (
         !parsed.rows ||
@@ -149,7 +161,7 @@ export default function ImportCenter({ dayId }) {
       setDebug(
         `Rows Parsed : ${parsed.rows.length}`
       );
-    } catch (err) {
+          } catch (err) {
       console.error(err);
 
       setError(
@@ -167,217 +179,19 @@ export default function ImportCenter({ dayId }) {
   async function handleImport() {
     try {
       if (!reportDate) {
-        alert("Please select report date.");
-        return;
-      }
-
-      setLoading(true);
-
-      const result = await saveReports({
-        reportDate,
-        rows,
-      });
-
-      if (!result.success) {
-        alert(result.message);
-        return;
-      }
-
-      alert(
-        `✅ Imported ${result.imported} rows successfully`
-      );
-
-      setRows([]);
-      setDebug("");
-      setError("");
-      setFileType("");
-    } catch (err) {
-      console.error(err);
-
-      alert("Import failed.");
-    } finally {
-      setLoading(false);
-    }
-  }
-  "use client";
-
-import { useState, useEffect, useCallback } from "react";
-
-import ImportUploader from "./ImportUploader";
-import ImportPreview from "./ImportPreview";
-
-import { importEngine } from "../../lib/import/engine";
-import { saveReports } from "../../lib/import/saveReports";
-import { supabase } from "../../lib/supabase";
-
-export default function ImportCenter({ dayId }) {
-  const [rows, setRows] = useState([]);
-  const [cinemas, setCinemas] = useState([]);
-  const [movies, setMovies] = useState([]);
-
-  const [lastFile, setLastFile] = useState(null);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [debug, setDebug] = useState("");
-  const [fileType, setFileType] = useState("");
-
-  // التاريخ الذى يختاره المستخدم
-  const [reportDate, setReportDate] = useState("");
-
-  /* ===========================
-     Load Cinemas & Movies
-  =========================== */
-
-  useEffect(() => {
-    async function loadLists() {
-      const [{ data: cinemaData }, { data: movieData }] =
-        await Promise.all([
-          supabase
-            .from("cinemas")
-            .select("id,name")
-            .order("name"),
-
-          supabase
-            .from("movies")
-            .select("id,title")
-            .order("title"),
-        ]);
-
-      setCinemas(cinemaData || []);
-      setMovies(movieData || []);
-    }
-
-    loadLists();
-  }, []);
-
-  /* ===========================
-     Detect File Type
-  =========================== */
-
-  function detectType(file) {
-    const ext = file.name
-      .split(".")
-      .pop()
-      .toLowerCase();
-
-    if (["xlsx", "xls"].includes(ext))
-      return "Excel";
-
-    if (ext === "csv")
-      return "CSV";
-
-    if (ext === "pdf")
-      return "PDF";
-
-    if (["png", "jpg", "jpeg"].includes(ext))
-      return "Image";
-
-    if (ext === "txt")
-      return "Text";
-
-    return "Unknown";
-  }
-
-  /* ===========================
-     Reload Preview
-  =========================== */
-
-  const reloadPreview = useCallback(async () => {
-    if (!lastFile) return;
-
-    try {
-      const parsed = await importEngine(lastFile);
-
-      setRows(parsed.rows || []);
-
-      setDebug(
-        `Rows Parsed : ${parsed.rows?.length || 0}`
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  }, [lastFile]);
-
-  useEffect(() => {
-    window.addEventListener(
-      "alias-created",
-      reloadPreview
-    );
-
-    return () =>
-      window.removeEventListener(
-        "alias-created",
-        reloadPreview
-      );
-  }, [reloadPreview]);
-
-  /* ===========================
-     Parse File
-  =========================== */
-
-  async function handleFile(file) {
-    try {
-      if (!reportDate) {
-        alert("Please select report date first.");
-        return;
-      }
-
-      setLoading(true);
-
-      setRows([]);
-      setError("");
-      setDebug("");
-
-      setLastFile(file);
-
-      setFileType(detectType(file));
-
-      const parsed = await importEngine(file);
-
-      if (
-        !parsed.rows ||
-        parsed.rows.length === 0
-      ) {
-        setError(
-          "No records found inside this file."
+        alert(
+          "Please select report date."
         );
         return;
       }
 
-      setRows(parsed.rows);
-
-      setDebug(
-        `Rows Parsed : ${parsed.rows.length}`
-      );
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err.message || "Import failed."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /* ===========================
-     Import
-  =========================== */
-
-  async function handleImport() {
-    try {
-      if (!reportDate) {
-        alert("Please select report date.");
-        return;
-      }
-
       setLoading(true);
 
-      const result = await saveReports({
-        reportDate,
-        rows,
-      });
+      const result =
+        await saveReports({
+          reportDate,
+          rows,
+        });
 
       if (!result.success) {
         alert(result.message);
@@ -392,6 +206,8 @@ export default function ImportCenter({ dayId }) {
       setDebug("");
       setError("");
       setFileType("");
+      setLastFile(null);
+
     } catch (err) {
       console.error(err);
 
@@ -400,3 +216,105 @@ export default function ImportCenter({ dayId }) {
       setLoading(false);
     }
   }
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 20,
+      }}
+    >
+      <div
+        style={{
+          background: "#1b1b1b",
+          padding: 20,
+          borderRadius: 14,
+        }}
+      >
+        <label
+          style={{
+            display: "block",
+            marginBottom: 10,
+            fontWeight: 700,
+          }}
+        >
+          📅 Report Date
+        </label>
+
+        <input
+          type="date"
+          value={reportDate}
+          onChange={(e) =>
+            setReportDate(e.target.value)
+          }
+          style={{
+            width: "100%",
+            padding: 12,
+            borderRadius: 8,
+            border: "1px solid #444",
+            background: "#111",
+            color: "#fff",
+            fontSize: 15,
+          }}
+        />
+      </div>
+
+      <ImportUploader
+        title="📥 Smart Import"
+        accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.txt"
+        onSelect={handleFile}
+      />
+
+      {!!fileType && (
+        <div
+          style={{
+            background: "#1f2937",
+            padding: 15,
+            borderRadius: 10,
+            color: "#4ade80",
+            fontWeight: 700,
+          }}
+        >
+          ✔ Detected File Type :
+          {" "}
+          {fileType}
+        </div>
+      )}
+
+      {!!debug && (
+        <div
+          style={{
+            background: "#172554",
+            padding: 15,
+            borderRadius: 10,
+            color: "#93c5fd",
+          }}
+        >
+          {debug}
+        </div>
+      )}
+
+      {!!error && (
+        <div
+          style={{
+            background: "#7f1d1d",
+            padding: 15,
+            borderRadius: 10,
+            color: "#fff",
+          }}
+        >
+          ❌ {error}
+        </div>
+      )}
+            {rows.length > 0 && (
+        <ImportPreview
+          rows={rows}
+          cinemas={cinemas}
+          movies={movies}
+          loading={loading}
+          onImport={handleImport}
+        />
+      )}
+    </div>
+  );
+}
