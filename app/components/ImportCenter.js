@@ -187,11 +187,11 @@ export default function ImportCenter({ dayId }) {
 
       setLoading(true);
 
-      const result =
-        await saveReports({
-          reportDate,
-          rows,
-        });
+      const result = await saveReports({
+  dayId,
+  reportDate,
+  rows,
+});
 
       if (!result.success) {
         alert(result.message);
