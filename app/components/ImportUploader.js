@@ -3,28 +3,88 @@
 import { useRef, useState } from "react";
 
 export default function ImportUploader({
-  title,
-  accept,
+  title = "📥 Smart Import",
+  accept = "",
   onSelect,
 }) {
   const inputRef = useRef(null);
 
-  const [fileName, setFileName] =
-    useState("");
+  const [fileName, setFileName] = useState("");
+  const [error, setError] = useState("");
+
+  /* =====================================================
+     OPEN FILE SELECTOR
+  ===================================================== */
 
   function chooseFile() {
     inputRef.current?.click();
   }
 
-  function handleChange(e) {
-    const file = e.target.files?.[0];
+  /* =====================================================
+     HANDLE FILE
+  ===================================================== */
 
-    if (!file) return;
+  function handleChange(event) {
+    try {
+      const file =
+        event.target.files?.[0];
 
-    setFileName(file.name);
+      if (!file) {
+        return;
+      }
 
-    onSelect?.(file);
+      setError("");
+      setFileName(file.name);
+
+      console.log(
+        "📂 Selected File:",
+        file.name
+      );
+
+      /* -----------------------------------------------
+         IMPORTANT:
+         Make sure onSelect is actually a function
+      ----------------------------------------------- */
+
+      if (typeof onSelect !== "function") {
+        console.error(
+          "ImportUploader Error: onSelect is not a function.",
+          {
+            onSelect,
+            file,
+          }
+        );
+
+        setError(
+          "Import handler is not available."
+        );
+
+        return;
+      }
+
+      onSelect(file);
+
+      /* -----------------------------------------------
+         Allow selecting the same file again
+      ----------------------------------------------- */
+
+      event.target.value = "";
+    } catch (err) {
+      console.error(
+        "ImportUploader handleChange Error:",
+        err
+      );
+
+      setError(
+        err?.message ||
+          "Unable to select file."
+      );
+    }
   }
+
+  /* =====================================================
+     UI
+  ===================================================== */
 
   return (
     <div
@@ -33,19 +93,36 @@ export default function ImportUploader({
         borderRadius: 16,
         padding: 30,
         textAlign: "center",
+        border: "1px solid #333",
       }}
     >
-      <h2>{title}</h2>
+      {/* TITLE */}
+
+      <div
+        style={{
+          fontSize: 20,
+          fontWeight: 700,
+          marginBottom: 10,
+        }}
+      >
+        {title}
+      </div>
+
+      {/* DESCRIPTION */}
 
       <p
         style={{
           color: "#9ca3af",
+          marginBottom: 20,
         }}
       >
         اختر ملفاً للاستيراد
       </p>
 
+      {/* FILE BUTTON */}
+
       <button
+        type="button"
         onClick={chooseFile}
         style={{
           background: "#2563eb",
@@ -61,6 +138,8 @@ export default function ImportUploader({
         📂 Choose File
       </button>
 
+      {/* HIDDEN INPUT */}
+
       <input
         ref={inputRef}
         type="file"
@@ -69,15 +148,35 @@ export default function ImportUploader({
         onChange={handleChange}
       />
 
+      {/* FILE NAME */}
+
       {fileName && (
         <div
           style={{
             marginTop: 20,
             color: "#22c55e",
             fontWeight: 700,
+            wordBreak: "break-word",
           }}
         >
           ✅ {fileName}
+        </div>
+      )}
+
+      {/* ERROR */}
+
+      {error && (
+        <div
+          style={{
+            marginTop: 15,
+            background: "#7f1d1d",
+            color: "#fff",
+            padding: 10,
+            borderRadius: 8,
+            fontWeight: 600,
+          }}
+        >
+          ❌ {error}
         </div>
       )}
     </div>
