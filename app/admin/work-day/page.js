@@ -25,9 +25,9 @@ export default async function WorkDayPage() {
   ======================================================== */
 
   const today =
-    new Date()
-      .toISOString()
-      .split("T")[0];
+    new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Africa/Cairo",
+}).format(new Date())
 
   /* ========================================================
      LOAD WORK DAYS
@@ -84,16 +84,9 @@ export default async function WorkDayPage() {
     ------------------------------------------------------ */
 
     const currentDate =
-      new Date()
-        .toISOString()
-        .split("T")[0];
-
-    if (
-      selectedDate >
-      currentDate
-    ) {
-      return;
-    }
+      new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Africa/Cairo",
+}).format(new Date())
 
     /* ------------------------------------------------------
        Check existing day
@@ -425,7 +418,6 @@ export default async function WorkDayPage() {
             type="date"
             name="work_date"
             min="2026-01-01"
-            max={today}
             defaultValue={today}
             required
             style={{

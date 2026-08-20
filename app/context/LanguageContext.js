@@ -14,9 +14,6 @@ import en from "../../translations/en";
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-
-  const [mounted, setMounted] = useState(false);
-
   const [language, setLanguage] = useState("en");
 
   const [font, setFont] = useState("Poppins");
@@ -29,11 +26,11 @@ export function LanguageProvider({ children }) {
     const savedFont =
       localStorage.getItem("font") || "Poppins";
 
+    // Sync persisted browser preferences after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLanguage(savedLanguage);
 
     setFont(savedFont);
-
-    setMounted(true);
 
   }, []);
 
@@ -46,8 +43,6 @@ export function LanguageProvider({ children }) {
 
   useEffect(() => {
 
-    if (!mounted) return;
-
     document.cookie =
       `language=${language}; path=/; max-age=31536000`;
 
@@ -57,12 +52,9 @@ export function LanguageProvider({ children }) {
     document.documentElement.lang =
       isArabic ? "ar" : "en";
 
-  }, [language, isArabic, mounted]);
+  }, [language, isArabic]);
 
   useEffect(() => {
-
-    if (!mounted) return;
-
     document.body.className = "";
 
     const className =
@@ -76,7 +68,7 @@ export function LanguageProvider({ children }) {
 
     document.body.classList.add(className);
 
-  }, [font, mounted]);
+  }, [font]);
 
   function changeLanguage(lang) {
 
@@ -112,10 +104,6 @@ export function LanguageProvider({ children }) {
     t,
 
   };
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <LanguageContext.Provider value={value}>

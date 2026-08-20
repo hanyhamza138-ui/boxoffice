@@ -3,7 +3,7 @@ import "./globals.css";
 
 
 export const metadata = {
-  title: "Box Office Egypt",
+  title: "Box Office Egypt ",
   description: "Cinema Database",
 };
 
