@@ -1,14 +1,11 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { saveWorkDayRevenue } from "../../../../../actions/workday";
-
-/* ==========================================================
-   CONSTANTS
-========================================================== */
-
-const STORAGE_PREFIX = "boxoffice_workday_draft_v2";
+import { useState } from "react";
+import {
+  saveWorkDayRevenue,
+  deleteWorkDayReport,
+} from "../../../../../actions/workday";
 
 const blankRow = {
   id: null,
@@ -18,179 +15,15 @@ const blankRow = {
   revenue: "",
 };
 
-/* ==========================================================
-   HELPERS
-========================================================== */
-
-function createBlankRow() {
-  return {
-    ...blankRow,
-    _key: `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}`,
-  };
-}
-
 function reportToRow(report) {
   return {
     id: report.id,
-    movieId:
-      report.movie_id !== null &&
-      report.movie_id !== undefined
-        ? String(report.movie_id)
-        : "",
-    versionId:
-      report.version_id !== null &&
-      report.version_id !== undefined
-        ? String(report.version_id)
-        : "",
-    tickets:
-      report.tickets !== null &&
-      report.tickets !== undefined
-        ? String(report.tickets)
-        : "",
-    revenue:
-      report.revenue !== null &&
-      report.revenue !== undefined
-        ? String(report.revenue)
-        : "",
-    _key: `saved-${report.id}`,
+    movieId: String(report.movie_id),
+    versionId: report.version_id ? String(report.version_id) : "",
+    tickets: String(report.tickets ?? ""),
+    revenue: String(report.revenue ?? ""),
   };
 }
-
-function numberValue(value) {
-  return Number(value || 0).toLocaleString("en-US");
-}
-
-function moneyValue(value) {
-  return Number(value || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
-
-function safeNumber(value) {
-  const normalized = String(value ?? "")
-    .replace(/,/g, "")
-    .replace(/٬/g, "")
-    .replace(/٫/g, ".")
-    .trim();
-
-  if (!normalized) {
-    return 0;
-  }
-
-  const parsed = Number(normalized);
-
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function normalizeVersionName(name) {
-  return String(name ?? "")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-function getVersionInfo(name) {
-  const original = normalizeVersionName(name);
-
-  const lower = original.toLowerCase();
-
-  let language = "";
-  let format = "";
-
-  if (
-    lower.includes("english") ||
-    lower.includes("eng") ||
-    original.includes("إنجليزي") ||
-    original.includes("انجليزي") ||
-    original.includes("أجنبي") ||
-    original.includes("اجنبي")
-  ) {
-    language = "English";
-  } else if (
-    lower.includes("arabic") ||
-    lower.includes("arab") ||
-    original.includes("عربي") ||
-    original.includes("العربية") ||
-    original.includes("العربي")
-  ) {
-    language = "Arabic";
-  } else if (
-    lower.includes("subtitle") ||
-    lower.includes("subtitled") ||
-    lower.includes("sub")
-  ) {
-    language = "Subtitle";
-  } else if (
-    lower.includes("dubbed") ||
-    lower.includes("dub")
-  ) {
-    language = "Dubbed";
-  }
-
-  if (lower.includes("imax")) {
-    format = "IMAX";
-  } else if (/\b3d\b/i.test(original)) {
-    format = "3D";
-  } else if (/\b2d\b/i.test(original)) {
-    format = "2D";
-  } else if (
-    lower.includes("dubbed") ||
-    lower.includes("dub")
-  ) {
-    format = "Dubbed";
-  }
-
-  return {
-    original,
-    language,
-    format,
-  };
-}
-
-function versionDisplayName(version) {
-  const info = getVersionInfo(version?.name);
-
-  if (!info.original) {
-    return "Standard";
-  }
-
-  if (info.language && info.format) {
-    return `${info.language} • ${info.format}`;
-  }
-
-  if (info.language) {
-    return info.language;
-  }
-
-  if (info.format) {
-    return info.format;
-  }
-
-  return info.original;
-}
-
-function versionSearchText(version) {
-  const info = getVersionInfo(version?.name);
-
-  return [
-    info.original,
-    info.language,
-    info.format,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
-function getStorageKey(dayId, cinemaId) {
-  return `${STORAGE_PREFIX}:${dayId}:${cinemaId}`;
-}
-
-/* ==========================================================
-   COMPONENT
-========================================================== */
 
 export default function WorkDayForm({
   dayId,
@@ -198,20 +31,14 @@ export default function WorkDayForm({
   movies = [],
   versions = [],
   existingReports = [],
-  t = {},
+  t,
 }) {
-  const savedRows = useMemo(
-    () =>
-      existingReports.length
-        ? existingReports.map(reportToRow)
-        : [],
-    [existingReports]
-  );
+  
 
   const [rows, setRows] = useState(() =>
-    savedRows.length
-      ? savedRows
-      : [createBlankRow()]
+    existingReports.length
+      ? existingReports.map(reportToRow)
+      : [blankRow]
   );
 
   const [deletedIds, setDeletedIds] = useState([]);
@@ -410,6 +237,73 @@ export default function WorkDayForm({
      ROW OPERATIONS
   ======================================================== */
 
+  const [saving, setSaving] =
+    useState(false);
+
+  const [cinemaSearch, setCinemaSearch] =
+    useState("");
+
+  const sortedVersions = useMemo(() => {
+    return [...versions].sort(
+      (a, b) =>
+        versionOrder(a) -
+        versionOrder(b)
+    );
+  }, [versions]);
+
+  const filteredCinemas = useMemo(() => {
+    const search = cinemaSearch
+      .trim()
+      .toLowerCase();
+
+    if (!search) {
+      return cinemas.slice(0, 30);
+    }
+
+    return cinemas
+      .filter((cinema) =>
+        [
+          cinema.name,
+          cinema.code,
+        ]
+          .filter(Boolean)
+          .some((value) =>
+            String(value)
+              .toLowerCase()
+              .includes(search)
+          )
+      )
+      .slice(0, 30);
+  }, [cinemas, cinemaSearch]);
+
+  const totals = useMemo(() => {
+    return rows.reduce(
+      (sum, row) => ({
+        tickets:
+          sum.tickets +
+          Number(row.tickets || 0),
+
+        revenue:
+          sum.revenue +
+          Number(row.revenue || 0),
+
+        filled:
+          sum.filled +
+          (row.movieId ||
+          row.versionId ||
+          row.tickets ||
+          row.revenue
+            ? 1
+            : 0),
+      }),
+      {
+        tickets: 0,
+        revenue: 0,
+        filled: 0,
+      }
+    );
+  }, [rows]);
+
   function addRow() {
     setRows((prev) => [
       ...prev,
@@ -430,21 +324,9 @@ export default function WorkDayForm({
     );
   }
 
-  function updateMovie(index, movieId) {
-    setRows((prev) =>
-      prev.map((row, i) =>
-        i === index
-          ? {
-              ...row,
-              movieId,
-              versionId: "",
-            }
-          : row
-      )
-    );
-  }
-
-  function removeRow(index) {
+  async function removeRow(
+    index
+  ) {
     const row = rows[index];
 
     if (!row) {
@@ -476,53 +358,9 @@ export default function WorkDayForm({
     setRows((prev) => {
       const next = prev.filter(
         (_, i) => i !== index
-      );
-
-      return next.length
-        ? next
-        : [createBlankRow()];
-    });
+      )
+    );
   }
-
-  /* ========================================================
-     DUPLICATE CHECK
-  ======================================================== */
-
-  function findDuplicateRows() {
-    const seen = new Map();
-    const duplicates = [];
-
-    rows.forEach((row, index) => {
-      const movieId =
-        String(row.movieId || "").trim();
-
-      const versionId =
-        String(row.versionId || "").trim();
-
-      if (!movieId) {
-        return;
-      }
-
-      const key =
-        `${movieId}__${versionId}`;
-
-      if (seen.has(key)) {
-        duplicates.push({
-          first: seen.get(key),
-          second: index,
-          key,
-        });
-      } else {
-        seen.set(key, index);
-      }
-    });
-
-    return duplicates;
-  }
-
-  /* ========================================================
-     SAVE
-  ======================================================== */
 
   async function handleSave() {
     if (saving) {
@@ -534,16 +372,24 @@ export default function WorkDayForm({
 
     for (const row of rows) {
       const movieId =
-        String(row.movieId || "").trim();
+        String(
+          row.movieId || ""
+        ).trim();
 
       const versionId =
-        String(row.versionId || "").trim();
+        String(
+          row.versionId || ""
+        ).trim();
 
       const tickets =
-        String(row.tickets || "").trim();
+        String(
+          row.tickets || ""
+        ).trim();
 
       const revenue =
-        String(row.revenue || "").trim();
+        String(
+          row.revenue || ""
+        ).trim();
 
       const hasAnyData =
         movieId ||
@@ -556,9 +402,8 @@ export default function WorkDayForm({
       }
 
       if (!movieId) {
-        window.alert(
-          t.selectMovieFirst ||
-            "Please select a movie first."
+        alert(
+          t.selectMovieFirst
         );
         return;
       }
@@ -570,917 +415,315 @@ export default function WorkDayForm({
         safeNumber(revenue);
 
       if (
-        ticketNumber < 0 ||
-        revenueNumber < 0
+        usedReports.has(
+          reportKey
+        )
       ) {
-        window.alert(
-          "Tickets and revenue cannot be negative."
+        alert(
+          t.duplicateMovie
         );
         return;
       }
 
-      const reportKey =
-        `${movieId}__${versionId}`;
-
-      if (usedReports.has(reportKey)) {
-        window.alert(
-          t.duplicateMovie ||
-            "The same movie/version cannot be entered twice."
-        );
-        return;
-      }
-
-      usedReports.add(reportKey);
+      usedReports.add(
+        reportKey
+      );
 
       payload.push({
-        id: row.id || undefined,
+        id: row.id,
 
-        day_id: Number(dayId),
+        day_id:
+          Number(dayId),
 
-        cinema_id: Number(cinemaId),
+        cinema_id:
+          Number(cinemaId),
 
-        movie_id: Number(movieId),
+        movie_id:
+          Number(movieId),
 
-        version_id: versionId
-          ? Number(versionId)
-          : null,
+        version_id:
+          versionId
+            ? Number(versionId)
+            : null,
 
-        tickets: ticketNumber,
+        tickets: Number(
+          tickets || 0
+        ),
 
-        revenue: revenueNumber,
+        revenue: Number(
+          revenue || 0
+        ),
       });
     }
 
     if (!payload.length) {
-      window.alert(
-        t.enterAtLeastOneMovie ||
-          "Please enter at least one movie."
+      alert(
+        t.enterAtLeastOneMovie
       );
       return;
     }
 
-    const duplicateRows =
-      findDuplicateRows();
-
-    if (duplicateRows.length) {
-      window.alert(
-        t.duplicateMovie ||
-          "Duplicate movie/version detected."
+    const result =
+      await saveWorkDayRevenue(
+        JSON.stringify({
+          rows: payload,
+          deletedIds,
+        })
       );
+
+    if (!result.success) {
+      alert(result.message);
       return;
     }
 
-    setSaving(true);
-
-    try {
-      const result =
-        await saveWorkDayRevenue(
-          JSON.stringify({
-            rows: payload,
-            deletedIds,
-          })
-        );
-
-      if (!result?.success) {
-        window.alert(
-          result?.message ||
-            "Unable to save the report."
-        );
-
-        return;
-      }
-
-      /*
-        Save succeeded.
-        The database is now the official source.
-      */
-      try {
-        const key = getStorageKey(
-          dayId,
-          cinemaId
-        );
-
-        window.localStorage.removeItem(key);
-      } catch (error) {
-        console.warn(
-          "Unable to clear local draft:",
-          error
-        );
-      }
-
-      window.alert(
-        t.savedSuccessfully ||
-          "Saved successfully."
-      );
-
-      window.location.reload();
-    } catch (error) {
-      console.error(
-        "Work Day Save Error:",
-        error
-      );
-
-      window.alert(
-        error?.message ||
-          "An unexpected error occurred while saving."
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  /* ========================================================
-     CLEAR DRAFT
-  ======================================================== */
-
-  function clearDraft() {
-    const ok = window.confirm(
-      "Clear the current unsaved draft?"
+    alert(
+      t.savedSuccessfully
     );
 
-    if (!ok) {
-      return;
-    }
-
-    try {
-      const key = getStorageKey(
-        dayId,
-        cinemaId
-      );
-
-      window.localStorage.removeItem(key);
-    } catch (error) {
-      console.warn(
-        "Unable to clear draft:",
-        error
-      );
-    }
-
-    setRows(
-      existingReports.length
-        ? existingReports.map(reportToRow)
-        : [createBlankRow()]
-    );
-
-    setDeletedIds([]);
+    window.location.reload();
   }
+    return (
+    <div
+      style={{
+        background: "#1c1c1c",
+        padding: "20px",
+        borderRadius: "10px",
+      }}
+    >
+      <h2>
+        🎬 {t.enterRevenue}
+      </h2>
 
-  /* ========================================================
-     DISPLAY FILTER
-  ======================================================== */
+      {rows.map((row, index) => {
+        const selectedMovie =
+          movies.find(
+            (movie) =>
+              String(movie.id) ===
+              String(row.movieId)
+          );
 
-  const displayedRows =
-    showOnlyFilled
-      ? rows.filter(
-          (row) =>
-            row.movieId ||
-            row.versionId ||
-            row.tickets ||
-            row.revenue
-        )
-      : rows;
-
-  /* ========================================================
-     RENDER
-  ======================================================== */
-
-  return (
-    <section style={shellStyle}>
-      {/* ====================================================
-          HEADER
-      ==================================================== */}
-
-      <div style={headerStyle}>
-        <div>
-          <p style={eyebrowStyle}>
-            BOXOFFICE • MANUAL ENTRY
-          </p>
-
-          <h2 style={titleStyle}>
-            🎬{" "}
-            {t.enterRevenue ||
-              "Enter Box Office Revenue"}
-          </h2>
-
-          <p style={subTitleStyle}>
-            Enter each movie once per version.
-            2D, 3D, IMAX and language versions
-            remain separate for accurate reporting.
-          </p>
-        </div>
-
-        <div style={summaryGridStyle}>
-          <SummaryCard
-            icon="🎬"
-            label={
-              t.addMovie ||
-              "Movies"
-            }
-            value={totals.filled}
-          />
-
-          <SummaryCard
-            icon="🎟️"
-            label={
-              t.totalTickets ||
-              "Tickets"
-            }
-            value={numberValue(
-              totals.tickets
-            )}
-          />
-
-          <SummaryCard
-            icon="💰"
-            label={
-              t.totalRevenue ||
-              "Revenue"
-            }
-            value={moneyValue(
-              totals.revenue
-            )}
-          />
-        </div>
-      </div>
-
-      {/* ====================================================
-          TOOLBAR
-      ==================================================== */}
-
-      <div style={toolbarStyle}>
-        <div style={toolbarLeftStyle}>
-          <button
-            type="button"
-            onClick={addRow}
-            style={addButtonStyle}
-          >
-            ➕{" "}
-            {t.addMovie ||
-              "Add Movie"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setShowOnlyFilled(
-                (value) => !value
-              )
-            }
-            style={
-              showOnlyFilled
-                ? activeFilterButtonStyle
-                : filterButtonStyle
-            }
-          >
-            {showOnlyFilled
-              ? "👁️ Showing Filled"
-              : "👁️ Show Filled Only"}
-          </button>
-        </div>
-
-        <div style={draftStatusStyle}>
-          <span style={draftDotStyle} />
-
-          <span>
-            Draft saved automatically
-          </span>
-        </div>
-      </div>
-
-      {/* ====================================================
-          ROWS
-      ==================================================== */}
-
-      <div style={rowsStyle}>
-        {displayedRows.map(
-          (row, displayIndex) => {
-            const realIndex =
-              rows.findIndex(
-                (item) =>
-                  item._key ===
-                  row._key
-              );
-
-            const selectedMovie =
-              getMovie(row.movieId);
-
-            const movieVersions =
-              getMovieVersions(
-                row.movieId
-              );
-
-            const selectedVersion =
-              getVersion(
-                row.versionId
-              );
-
-            return (
-              <article
-                key={
-                  row._key ||
-                  row.id ||
-                  `row-${displayIndex}`
-                }
-                style={
-                  rowCardStyle
-                }
-              >
-                {/* ==========================================
-                    ROW HEADER
-                ========================================== */}
-
-                <div
-                  style={
-                    rowHeaderStyle
-                  }
-                >
-                  <div
-                    style={
-                      rowNumberWrapStyle
-                    }
-                  >
-                    <span
-                      style={
-                        rowNumberStyle
-                      }
-                    >
-                      {realIndex + 1}
-                    </span>
-
-                    <div>
-                      <strong
-                        style={
-                          rowTitleStyle
-                        }
-                      >
-                        {selectedMovie
-                          ?.title ||
-                          "New Movie Entry"}
-                      </strong>
-
-                      {selectedMovie
-                        ?.code && (
-                        <span
-                          style={
-                            rowCodeStyle
-                          }
-                        >
-                          {selectedMovie.code}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeRow(
-                        realIndex
-                      )
-                    }
-                    style={
-                      deleteButtonStyle
-                    }
-                  >
-                    🗑️{" "}
-                    {t.delete ||
-                      "Delete"}
-                  </button>
-                </div>
-
-                {/* ==========================================
-                    MAIN FIELDS
-                ========================================== */}
-
-                <div
-                  style={
-                    fieldsGridStyle
-                  }
-                >
-                  {/* MOVIE */}
-
-                  <label
-                    style={
-                      fieldStyle
-                    }
-                  >
-                    <span
-                      style={
-                        labelStyle
-                      }
-                    >
-                      🎬{" "}
-                      {t.selectMovie ||
-                        "Movie"}
-                    </span>
-
-                    <select
-                      value={
-                        row.movieId
-                      }
-                      onChange={(e) =>
-                        updateMovie(
-                          realIndex,
-                          e.target.value
-                        )
-                      }
-                      style={
-                        inputStyle
-                      }
-                    >
-                      <option value="">
-                        {t.selectMovie ||
-                          "Select movie"}
-                      </option>
-
-                      {movies.map(
-                        (movie) => (
-                          <option
-                            key={
-                              movie.id
-                            }
-                            value={
-                              movie.id
-                            }
-                          >
-                            {movie.code
-                              ? `${movie.code} - `
-                              : ""}
-                            {
-                              movie.title
-                            }
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </label>
-
-                  {/* VERSION */}
-
-                  <label
-                    style={
-                      fieldStyle
-                    }
-                  >
-                    <span
-                      style={
-                        labelStyle
-                      }
-                    >
-                      🎞️{" "}
-                      {t.selectVersion ||
-                        "Version / Format"}
-                    </span>
-
-                    <select
-                      value={
-                        row.versionId
-                      }
-                      onChange={(e) =>
-                        updateRow(
-                          realIndex,
-                          "versionId",
-                          e.target.value
-                        )
-                      }
-                      style={
-                        inputStyle
-                      }
-                      disabled={
-                        !row.movieId
-                      }
-                    >
-                      <option value="">
-                        {!row.movieId
-                          ? "Select movie first"
-                          : t.selectVersion ||
-                            "Select version"}
-                      </option>
-
-                      {movieVersions.map(
-                        (version) => {
-                          const info =
-                            getVersionInfo(
-                              version.name
-                            );
-
-                          return (
-                            <option
-                              key={
-                                version.id
-                              }
-                              value={
-                                version.id
-                              }
-                            >
-                              {versionDisplayName(
-                                version
-                              )}
-                            </option>
-                          );
-                        }
-                      )}
-                    </select>
-                  </label>
-
-                  {/* TICKETS */}
-
-                  <label
-                    style={
-                      fieldStyle
-                    }
-                  >
-                    <span
-                      style={
-                        labelStyle
-                      }
-                    >
-                      🎟️{" "}
-                      {t.totalTickets ||
-                        "Tickets"}
-                    </span>
-
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      placeholder="0"
-                      value={
-                        row.tickets
-                      }
-                      onChange={(e) =>
-                        updateRow(
-                          realIndex,
-                          "tickets",
-                          e.target.value
-                        )
-                      }
-                      style={
-                        inputStyle
-                      }
-                    />
-                  </label>
-
-                  {/* REVENUE */}
-
-                  <label
-                    style={
-                      fieldStyle
-                    }
-                  >
-                    <span
-                      style={
-                        labelStyle
-                      }
-                    >
-                      💰{" "}
-                      {t.totalRevenue ||
-                        "Revenue"}
-                    </span>
-
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      inputMode="decimal"
-                      placeholder="0.00"
-                      value={
-                        row.revenue
-                      }
-                      onChange={(e) =>
-                        updateRow(
-                          realIndex,
-                          "revenue",
-                          e.target.value
-                        )
-                      }
-                      style={
-                        inputStyle
-                      }
-                    />
-                  </label>
-                </div>
-
-                {/* ==========================================
-                    MOVIE INFORMATION
-                ========================================== */}
-
-                {selectedMovie && (
-                  <div
-                    style={
-                      moviePreviewStyle
-                    }
-                  >
-                    {selectedMovie.poster ? (
-                      <img
-                        src={
-                          selectedMovie.poster
-                        }
-                        alt={
-                          selectedMovie.title ||
-                          "Movie"
-                        }
-                        style={
-                          posterStyle
-                        }
-                        onError={(
-                          e
-                        ) => {
-                          e.currentTarget.style.display =
-                            "none";
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={
-                          posterPlaceholderStyle
-                        }
-                      >
-                        🎬
-                      </div>
-                    )}
-
-                    <div
-                      style={
-                        movieInfoStyle
-                      }
-                    >
-                      <div
-                        style={
-                          movieNameStyle
-                        }
-                      >
-                        {
-                          selectedMovie.title
-                        }
-                      </div>
-
-                      {selectedMovie.code && (
-                        <div
-                          style={
-                            mutedTextStyle
-                          }
-                        >
-                          {
-                            selectedMovie.code
-                          }
-                        </div>
-                      )}
-
-                      {selectedVersion && (
-                        <div
-                          style={
-                            versionBadgeRowStyle
-                          }
-                        >
-                          <span
-                            style={
-                              versionBadgeStyle
-                            }
-                          >
-                            🎞️{" "}
-                            {versionDisplayName(
-                              selectedVersion
-                            )}
-                          </span>
-
-                          {getVersionInfo(
-                            selectedVersion.name
-                          ).language && (
-                            <span
-                              style={
-                                secondaryBadgeStyle
-                              }
-                            >
-                              {
-                                getVersionInfo(
-                                  selectedVersion.name
-                                ).language
-                              }
-                            </span>
-                          )}
-
-                          {getVersionInfo(
-                            selectedVersion.name
-                          ).format && (
-                            <span
-                              style={
-                                secondaryBadgeStyle
-                              }
-                            >
-                              {
-                                getVersionInfo(
-                                  selectedVersion.name
-                                ).format
-                              }
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div
-                      style={
-                        rowTotalsStyle
-                      }
-                    >
-                      <div>
-                        <span
-                          style={
-                            miniLabelStyle
-                          }
-                        >
-                          Tickets
-                        </span>
-
-                        <strong
-                          style={
-                            miniValueStyle
-                          }
-                        >
-                          {numberValue(
-                            row.tickets
-                          )}
-                        </strong>
-                      </div>
-
-                      <div>
-                        <span
-                          style={
-                            miniLabelStyle
-                          }
-                        >
-                          Revenue
-                        </span>
-
-                        <strong
-                          style={
-                            miniValueStyle
-                          }
-                        >
-                          {moneyValue(
-                            row.revenue
-                          )}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </article>
-            );
-          }
-        )}
-      </div>
-
-      {/* ====================================================
-          EMPTY STATE
-      ==================================================== */}
-
-      {!displayedRows.length && (
-        <div
-          style={
-            emptyStateStyle
-          }
-        >
+        return (
           <div
-            style={
-              emptyIconStyle
+            key={
+              row.id ??
+              `new-${index}`
             }
-          >
-            🎬
-          </div>
-
-          <strong>
-            No entries to display
-          </strong>
-
-          <span>
-            Add a movie to start entering
-            the box office report.
-          </span>
-
-          <button
-            type="button"
-            onClick={addRow}
-            style={
-              addButtonStyle
-            }
-          >
-            ➕ Add Movie
-          </button>
-        </div>
-      )}
-
-      {/* ====================================================
-          FOOTER ACTIONS
-      ==================================================== */}
-
-      <div
-        style={
-          footerStyle
-        }
-      >
-        <div
-          style={
-            footerSummaryStyle
-          }
-        >
-          <div>
-            <span
-              style={
-                footerLabelStyle
-              }
-            >
-              Total Tickets
-            </span>
-
-            <strong
-              style={
-                footerValueStyle
-              }
-            >
-              {numberValue(
-                totals.tickets
-              )}
-            </strong>
-          </div>
-
-          <div>
-            <span
-              style={
-                footerLabelStyle
-              }
-            >
-              Total Revenue
-            </span>
-
-            <strong
-              style={
-                footerRevenueStyle
-              }
-            >
-              💰{" "}
-              {moneyValue(
-                totals.revenue
-              )}
-            </strong>
-          </div>
-        </div>
-
-        <div
-          style={
-            footerButtonsStyle
-          }
-        >
-          <button
-            type="button"
-            onClick={clearDraft}
-            disabled={saving}
-            style={
-              clearButtonStyle
-            }
-          >
-            ↩️ Reset Draft
-          </button>
-
-          <button
-            type="button"
-            onClick={addRow}
-            disabled={saving}
-            style={
-              addButtonStyle
-            }
-          >
-            ➕{" "}
-            {t.addMovie ||
-              "Add Movie"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
             style={{
-              ...saveButtonStyle,
-              opacity: saving
-                ? 0.6
-                : 1,
-              cursor: saving
-                ? "not-allowed"
-                : "pointer",
+              border:
+                "1px solid #333",
+              padding: "15px",
+              borderRadius: "10px",
+              marginBottom: "20px",
             }}
           >
-            {saving
-              ? "⏳ Saving..."
-              : `💾 ${
-                  t.save ||
-                  "Save Report"
-                }`}
-          </button>
-        </div>
-      </div>
-    </section>
+            <select
+              value={row.movieId}
+              onChange={(e) =>
+                updateRow(
+                  index,
+                  "movieId",
+                  e.target.value
+                )
+              }
+              style={{
+                width: "100%",
+                padding: "10px",
+              }}
+            >
+              <option value="">
+                {t.selectMovie}
+              </option>
+
+              {movies.map(
+                (movie) => (
+                  <option
+                    key={movie.id}
+                    value={movie.id}
+                  >
+                    {movie.code}
+                    {" - "}
+                    {movie.title}
+                  </option>
+                )
+              )}
+            </select>
+
+            {selectedMovie && (
+              <div
+                style={{
+                  marginTop:
+                    "15px",
+                  textAlign:
+                    "center",
+                }}
+              >
+                <img
+                  src={
+                    selectedMovie.poster
+                  }
+                  alt={
+                    selectedMovie.title
+                  }
+                  style={{
+                    width: "180px",
+                    borderRadius:
+                      "10px",
+                  }}
+                />
+
+                <h3>
+                  {
+                    selectedMovie.title
+                  }
+                </h3>
+
+                <p>
+                  {
+                    selectedMovie.code
+                  }
+                </p>
+              </div>
+            )}
+
+            <select
+              value={
+                row.versionId
+              }
+              onChange={(e) =>
+                updateRow(
+                  index,
+                  "versionId",
+                  e.target.value
+                )
+              }
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginTop:
+                  "10px",
+              }}
+            >
+              <option value="">
+                {t.selectVersion}
+              </option>
+
+              {versions.map(
+                (version) => (
+                  <option
+                    key={
+                      version.id
+                    }
+                    value={
+                      version.id
+                    }
+                  >
+                    {
+                      version.name
+                    }
+                  </option>
+                )
+              )}
+            </select>
+
+            <input
+              type="number"
+              placeholder={
+                t.totalTickets
+              }
+              value={row.tickets}
+              onChange={(e) =>
+                updateRow(
+                  index,
+                  "tickets",
+                  e.target.value
+                )
+              }
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginTop:
+                  "10px",
+              }}
+            />
+
+            <input
+              type="number"
+              placeholder={
+                t.totalRevenue
+              }
+              value={row.revenue}
+              onChange={(e) =>
+                updateRow(
+                  index,
+                  "revenue",
+                  e.target.value
+                )
+              }
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginTop:
+                  "10px",
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                removeRow(index)
+              }
+              style={{
+                marginTop:
+                  "10px",
+                background:
+                  "#dc2626",
+                color: "white",
+                border: "none",
+                padding:
+                  "10px",
+                borderRadius:
+                  "6px",
+                cursor:
+                  "pointer",
+              }}
+            >
+              🗑️ {t.delete}
+            </button>
+          </div>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={addRow}
+        style={{
+          background: "#16a34a",
+          color: "white",
+          border: "none",
+          padding: "12px",
+          borderRadius: "8px",
+          cursor: "pointer",
+          marginRight: "10px",
+        }}
+      >
+        ➕ {t.addMovie}
+      </button>
+
+      <button
+        type="button"
+        onClick={handleSave}
+        style={{
+          background: "#2563eb",
+          color: "white",
+          border: "none",
+          padding: "12px",
+          borderRadius: "8px",
+          cursor: "pointer",
+        }}
+      >
+        💾 {t.save}
+      </button>
+    </div>
   );
 }
 
@@ -2013,4 +1256,241 @@ const emptyStateStyle = {
 const emptyIconStyle = {
   fontSize: 42,
   marginBottom: 4,
+};
+
+/* ==========================================================
+   STYLES
+========================================================== */
+
+const shellStyle = {
+  background: "#111827",
+  border: "1px solid #334155",
+  borderRadius: 12,
+  padding: 22,
+};
+
+const cinemaSearchBoxStyle = {
+  background: "#0b1220",
+  border: "1px solid #334155",
+  borderRadius: 12,
+  padding: 16,
+  marginBottom: 20,
+  display: "grid",
+  gridTemplateColumns:
+    "minmax(220px,0.7fr) minmax(280px,1.3fr)",
+  gap: 18,
+  alignItems: "start",
+};
+
+const cinemaSearchTitleStyle = {
+  margin: "7px 0 0",
+  fontSize: 20,
+};
+
+const cinemaSearchControlsStyle = {
+  position: "relative",
+};
+
+const cinemaSearchInputStyle = {
+  width: "100%",
+  minHeight: 46,
+  padding: "10px 14px",
+  borderRadius: 9,
+  border: "1px solid #475569",
+  background: "#111827",
+  color: "#fff",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const cinemaResultsStyle = {
+  marginTop: 8,
+  background: "#111827",
+  border: "1px solid #334155",
+  borderRadius: 9,
+  maxHeight: 280,
+  overflowY: "auto",
+  padding: 6,
+};
+
+const cinemaResultButtonStyle = {
+  width: "100%",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  padding: "10px 12px",
+  borderRadius: 7,
+  border: "1px solid transparent",
+  background: "transparent",
+  color: "#fff",
+  cursor: "pointer",
+  textAlign: "left",
+};
+
+const selectedCinemaButtonStyle = {
+  background: "#1d4ed8",
+  border: "1px solid #3b82f6",
+};
+
+const noCinemaResultStyle = {
+  padding: 14,
+  color: "#9ca3af",
+  textAlign: "center",
+};
+
+const headerStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(260px,1fr))",
+  gap: 18,
+  alignItems: "start",
+  marginBottom: 20,
+};
+
+const eyebrowStyle = {
+  margin: 0,
+  color: "#facc15",
+  fontSize: 12,
+  fontWeight: 900,
+  textTransform: "uppercase",
+};
+
+const titleStyle = {
+  margin: "8px 0 0",
+  fontSize: 28,
+};
+
+const summaryGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(120px,1fr))",
+  gap: 10,
+};
+
+const summaryCardStyle = {
+  background: "#0f172a",
+  border: "1px solid #334155",
+  borderRadius: 8,
+  padding: 12,
+};
+
+const summaryLabelStyle = {
+  display: "block",
+  color: "#9ca3af",
+  fontSize: 12,
+  marginBottom: 6,
+};
+
+const summaryValueStyle = {
+  color: "#fff",
+  fontSize: 20,
+};
+
+const rowsStyle = {
+  display: "grid",
+  gap: 14,
+};
+
+const rowCardStyle = {
+  background: "#0f172a",
+  border: "1px solid #263244",
+  borderRadius: 10,
+  padding: 16,
+};
+
+const rowHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  marginBottom: 14,
+};
+
+const fieldsGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(180px,1fr))",
+  gap: 12,
+};
+
+const fieldStyle = {
+  display: "grid",
+  gap: 6,
+};
+
+const labelStyle = {
+  color: "#9ca3af",
+  fontSize: 12,
+  fontWeight: 800,
+};
+
+const inputStyle = {
+  width: "100%",
+  minHeight: 44,
+  padding: "10px 12px",
+  borderRadius: 8,
+  border: "1px solid #334155",
+  background: "#111827",
+  color: "#fff",
+  boxSizing: "border-box",
+};
+
+const moviePreviewStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  marginTop: 14,
+  paddingTop: 14,
+  borderTop: "1px solid #263244",
+};
+
+const posterStyle = {
+  width: 54,
+  height: 76,
+  objectFit: "cover",
+  borderRadius: 6,
+};
+
+const mutedTextStyle = {
+  margin: "6px 0 0",
+  color: "#9ca3af",
+};
+
+const actionsStyle = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 10,
+  flexWrap: "wrap",
+  marginTop: 20,
+};
+
+const addButtonStyle = {
+  background: "#16a34a",
+  color: "white",
+  border: "none",
+  padding: "12px 18px",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontWeight: 800,
+};
+
+const saveButtonStyle = {
+  background: "#2563eb",
+  color: "white",
+  border: "none",
+  padding: "12px 22px",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontWeight: 800,
+};
+
+const deleteButtonStyle = {
+  background: "#7f1d1d",
+  color: "white",
+  border: "1px solid #991b1b",
+  padding: "8px 12px",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontWeight: 800,
 };

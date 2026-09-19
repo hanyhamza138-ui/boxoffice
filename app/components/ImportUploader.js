@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 
 export default function ImportUploader({
   title = "📥 Smart Import",
+  description = "Choose a file to import.",
   accept = "",
   onSelect,
 }) {
@@ -116,7 +117,7 @@ export default function ImportUploader({
           marginBottom: 20,
         }}
       >
-        اختر ملفاً للاستيراد
+        {description}
       </p>
 
       {/* FILE BUTTON */}

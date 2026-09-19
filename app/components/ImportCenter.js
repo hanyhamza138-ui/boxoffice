@@ -13,7 +13,12 @@ import { importEngine } from "../../lib/import/engine";
 import { saveReports } from "../../lib/import/saveReports";
 import { supabase } from "../../lib/supabase";
 
-export default function ImportCenter({ dayId }) {
+export default function ImportCenter({
+  dayId,
+  title = "Smart Import",
+  description = "Upload a file, review matches, then save the rows to this work day.",
+  accept = ".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.webp,.txt",
+}) {
   const [rows, setRows] = useState([]);
   const [cinemas, setCinemas] = useState([]);
   const [movies, setMovies] = useState([]);
@@ -524,8 +529,9 @@ export default function ImportCenter({ dayId }) {
       ================================================= */}
 
       <ImportUploader
-        title="📥 Smart Import"
-        accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.webp,.txt"
+        title={`📥 ${title}`}
+        description={description}
+        accept={accept}
         onSelect={handleFile}
       />
 

@@ -483,6 +483,117 @@ export default async function WorkDayDetailsPage({
       </div>
 
       {/* ==================================================
+          INPUT METHODS
+      ================================================== */}
+
+      <section
+        style={{
+          background: "#111827",
+          border: "1px solid #334155",
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 25,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 16,
+          }}
+        >
+          <div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 24,
+              }}
+            >
+              طرق إدخال البيانات
+            </h2>
+
+            <p
+              style={{
+                color: "#9ca3af",
+                margin: "8px 0 0",
+              }}
+            >
+              اختر طريقة الإدخال المناسبة لهذا اليوم.
+            </p>
+          </div>
+
+          <span
+            style={{
+              color:
+                day?.status === "open"
+                  ? "#86efac"
+                  : "#fca5a5",
+              fontWeight: 800,
+            }}
+          >
+            {day?.status === "open"
+              ? "جاهز للإدخال"
+              : "اليوم مغلق"}
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(170px,1fr))",
+            gap: 12,
+          }}
+        >
+          <InputMethod
+            href={`/admin/work-day/${id}/manual`}
+            icon="✍️"
+            title="Manual"
+            text="إدخال يدوي حسب السينما"
+          />
+
+          <InputMethod
+            href={`/admin/work-day/${id}/excel`}
+            icon="📊"
+            title="Excel"
+            text="ملفات xlsx و xls"
+          />
+
+          <InputMethod
+            href={`/admin/work-day/${id}/csv`}
+            icon="🧾"
+            title="CSV"
+            text="استيراد CSV سريع"
+          />
+
+          <InputMethod
+            href={`/admin/work-day/${id}/pdf`}
+            icon="📄"
+            title="PDF"
+            text="استخراج من تقارير PDF"
+          />
+
+          <InputMethod
+            href={`/admin/work-day/${id}/paste`}
+            icon="📝"
+            title="Text"
+            text="رسائل أو ملف نصي"
+          />
+
+          <InputMethod
+            href={`/admin/work-day/${id}/api`}
+            icon="🔌"
+            title="API"
+            text="JSON أو XML"
+          />
+        </div>
+      </section>
+
+      {/* ==================================================
           STATS
       ================================================== */}
 
@@ -837,6 +948,76 @@ export default async function WorkDayDetailsPage({
         </div>
       </div>
     </main>
+  );
+}
+
+/* ==========================================================
+   INPUT METHOD
+========================================================== */
+
+function InputMethod({
+  href,
+  icon,
+  title,
+  text,
+}) {
+  return (
+    <Link
+      href={href}
+      style={{
+        textDecoration: "none",
+      }}
+    >
+      <div
+        style={{
+          minHeight: 116,
+          background: "#0f172a",
+          border: "1px solid #334155",
+          borderRadius: 12,
+          padding: 16,
+          color: "#fff",
+          display: "grid",
+          alignContent: "space-between",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <strong
+            style={{
+              fontSize: 18,
+            }}
+          >
+            {title}
+          </strong>
+
+          <span
+            style={{
+              fontSize: 24,
+            }}
+          >
+            {icon}
+          </span>
+        </div>
+
+        <p
+          style={{
+            color: "#9ca3af",
+            margin: "12px 0 0",
+            lineHeight: 1.5,
+            fontSize: 14,
+          }}
+        >
+          {text}
+        </p>
+      </div>
+    </Link>
   );
 }
 
