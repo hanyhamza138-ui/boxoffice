@@ -1,4 +1,3 @@
-
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { supabase } from "../../../../../../lib/supabase";
@@ -284,4 +283,3 @@ const mutedNavLink = {
   ...navLink,
   background: "#374151",
 };
-
