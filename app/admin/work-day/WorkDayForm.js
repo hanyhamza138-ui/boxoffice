@@ -1,8 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { saveWorkDayRevenue } from "../../../../../actions/workday";
+
+/* ==========================================================
+   CONSTANTS
+========================================================== */
+
+const STORAGE_PREFIX = "boxoffice_workday_draft_v2";
 
 const blankRow = {
   id: null,
@@ -12,125 +17,179 @@ const blankRow = {
   revenue: "",
 };
 
+/* ==========================================================
+   HELPERS
+========================================================== */
+
 function createBlankRow() {
-  return { ...blankRow };
+  return {
+    ...blankRow,
+    _key: `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`,
+  };
 }
 
 function reportToRow(report) {
   return {
     id: report.id,
-    movieId: String(report.movie_id),
-    versionId: report.version_id
-      ? String(report.version_id)
-      : "",
-    tickets: String(report.tickets ?? ""),
-    revenue: String(report.revenue ?? ""),
+    movieId:
+      report.movie_id !== null &&
+      report.movie_id !== undefined
+        ? String(report.movie_id)
+        : "",
+    versionId:
+      report.version_id !== null &&
+      report.version_id !== undefined
+        ? String(report.version_id)
+        : "",
+    tickets:
+      report.tickets !== null &&
+      report.tickets !== undefined
+        ? String(report.tickets)
+        : "",
+    revenue:
+      report.revenue !== null &&
+      report.revenue !== undefined
+        ? String(report.revenue)
+        : "",
+    _key: `saved-${report.id}`,
   };
 }
 
 function numberValue(value) {
-  return Number(value || 0).toLocaleString();
+  return Number(value || 0).toLocaleString("en-US");
 }
 
-function normalizeVersionName(name = "") {
-  return String(name)
+function moneyValue(value) {
+  return Number(value || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
+function safeNumber(value) {
+  const normalized = String(value ?? "")
+    .replace(/,/g, "")
+    .replace(/٬/g, "")
+    .replace(/٫/g, ".")
+    .trim();
+
+  if (!normalized) {
+    return 0;
+  }
+
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeVersionName(name) {
+  return String(name ?? "")
     .trim()
-    .toLowerCase()
-    .replace(/[‐-‒–—]/g, "-")
     .replace(/\s+/g, " ");
 }
 
-function versionLabel(version, t) {
-  const name = String(version?.name || "").trim();
-  const normalized = normalizeVersionName(name);
+function getVersionInfo(name) {
+  const original = normalizeVersionName(name);
+
+  const lower = original.toLowerCase();
+
+  let language = "";
+  let format = "";
 
   if (
-    normalized === "english" ||
-    normalized === "english movie" ||
-    normalized === "eng" ||
-    normalized.includes("english movie")
+    lower.includes("english") ||
+    lower.includes("eng") ||
+    original.includes("إنجليزي") ||
+    original.includes("انجليزي") ||
+    original.includes("أجنبي") ||
+    original.includes("اجنبي")
   ) {
-    return "English Movie";
+    language = "English";
+  } else if (
+    lower.includes("arabic") ||
+    lower.includes("arab") ||
+    original.includes("عربي") ||
+    original.includes("العربية") ||
+    original.includes("العربي")
+  ) {
+    language = "Arabic";
+  } else if (
+    lower.includes("subtitle") ||
+    lower.includes("subtitled") ||
+    lower.includes("sub")
+  ) {
+    language = "Subtitle";
+  } else if (
+    lower.includes("dubbed") ||
+    lower.includes("dub")
+  ) {
+    language = "Dubbed";
   }
 
-  if (
-    normalized === "arabic" ||
-    normalized === "arabic movie" ||
-    normalized === "ar"
+  if (lower.includes("imax")) {
+    format = "IMAX";
+  } else if (/\b3d\b/i.test(original)) {
+    format = "3D";
+  } else if (/\b2d\b/i.test(original)) {
+    format = "2D";
+  } else if (
+    lower.includes("dubbed") ||
+    lower.includes("dub")
   ) {
-    return "Arabic";
+    format = "Dubbed";
   }
 
-  if (
-    normalized === "2d" ||
-    normalized === "2-d"
-  ) {
-    return "2D";
-  }
-
-  if (
-    normalized === "3d" ||
-    normalized === "3-d"
-  ) {
-    return "3D";
-  }
-
-  if (
-    normalized === "imax" ||
-    normalized === "imax 2d" ||
-    normalized === "imax 3d"
-  ) {
-    return "IMAX";
-  }
-
-  return name;
+  return {
+    original,
+    language,
+    format,
+  };
 }
 
-function versionOrder(version) {
-  const normalized = normalizeVersionName(
-    version?.name
-  );
+function versionDisplayName(version) {
+  const info = getVersionInfo(version?.name);
 
-  if (
-    normalized === "arabic" ||
-    normalized === "arabic movie" ||
-    normalized === "ar"
-  ) {
-    return 1;
+  if (!info.original) {
+    return "Standard";
   }
 
-  if (
-    normalized === "english" ||
-    normalized === "english movie" ||
-    normalized === "eng"
-  ) {
-    return 2;
+  if (info.language && info.format) {
+    return `${info.language} • ${info.format}`;
   }
 
-  if (
-    normalized === "2d" ||
-    normalized === "2-d"
-  ) {
-    return 3;
+  if (info.language) {
+    return info.language;
   }
 
-  if (
-    normalized === "3d" ||
-    normalized === "3-d"
-  ) {
-    return 4;
+  if (info.format) {
+    return info.format;
   }
 
-  if (
-    normalized === "imax" ||
-    normalized === "imax 2d" ||
-    normalized === "imax 3d"
-  ) {
-    return 5;
-  }
-
-  return 99;
+  return info.original;
 }
+
+function versionSearchText(version) {
+  const info = getVersionInfo(version?.name);
+
+  return [
+    info.original,
+    info.language,
+    info.format,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function getStorageKey(dayId, cinemaId) {
+  return `${STORAGE_PREFIX}:${dayId}:${cinemaId}`;
+}
+
+/* ==========================================================
+   COMPONENT
+========================================================== */
 
 export default function WorkDayForm({
   dayId,
@@ -138,107 +197,169 @@ export default function WorkDayForm({
   movies = [],
   versions = [],
   existingReports = [],
-  cinemas = [],
-  currentCinema = null,
-  t,
+  t = {},
 }) {
-  const router = useRouter();
+  const savedRows = useMemo(
+    () =>
+      existingReports.length
+        ? existingReports.map(reportToRow)
+        : [],
+    [existingReports]
+  );
 
   const [rows, setRows] = useState(() =>
-    existingReports.length
-      ? existingReports
-          .map(reportToRow)
-          .sort((a, b) => {
-            const movieA =
-              movies.find(
-                (movie) =>
-                  String(movie.id) ===
-                  String(a.movieId)
-              );
-
-            const movieB =
-              movies.find(
-                (movie) =>
-                  String(movie.id) ===
-                  String(b.movieId)
-              );
-
-            return String(
-              movieA?.title || ""
-            ).localeCompare(
-              String(movieB?.title || ""),
-              undefined,
-              {
-                numeric: true,
-                sensitivity: "base",
-              }
-            );
-          })
+    savedRows.length
+      ? savedRows
       : [createBlankRow()]
   );
 
-  const [deletedIds, setDeletedIds] =
-    useState([]);
+  const [deletedIds, setDeletedIds] = useState([]);
 
-  const [saving, setSaving] =
+  const [saving, setSaving] = useState(false);
+
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  const [showOnlyFilled, setShowOnlyFilled] =
     useState(false);
 
-  const [cinemaSearch, setCinemaSearch] =
-    useState("");
+  /* ========================================================
+     LOAD LOCAL DRAFT
+  ======================================================== */
 
-  const sortedVersions = useMemo(() => {
-    return [...versions].sort(
-      (a, b) =>
-        versionOrder(a) -
-        versionOrder(b)
-    );
-  }, [versions]);
-
-  const filteredCinemas = useMemo(() => {
-    const search = cinemaSearch
-      .trim()
-      .toLowerCase();
-
-    if (!search) {
-      return cinemas.slice(0, 30);
+  useEffect(() => {
+    if (draftLoaded) {
+      return;
     }
 
-    return cinemas
-      .filter((cinema) =>
-        [
-          cinema.name,
-          cinema.code,
-        ]
-          .filter(Boolean)
-          .some((value) =>
-            String(value)
-              .toLowerCase()
-              .includes(search)
-          )
-      )
-      .slice(0, 30);
-  }, [cinemas, cinemaSearch]);
+    try {
+      const key = getStorageKey(
+        dayId,
+        cinemaId
+      );
+
+      const raw =
+        window.localStorage.getItem(key);
+
+      if (!raw) {
+        setDraftLoaded(true);
+        return;
+      }
+
+      const draft = JSON.parse(raw);
+
+      if (
+        !draft ||
+        !Array.isArray(draft.rows)
+      ) {
+        setDraftLoaded(true);
+        return;
+      }
+
+      /*
+        إذا كانت هناك بيانات محفوظة بالفعل في DB،
+        نعتمد DB باعتبارها المصدر الرسمي.
+      */
+      if (existingReports.length) {
+        setDraftLoaded(true);
+        return;
+      }
+
+      if (draft.rows.length) {
+        setRows(
+          draft.rows.map((row, index) => ({
+            ...blankRow,
+            ...row,
+            _key:
+              row._key ||
+              `draft-${index}-${Date.now()}`,
+          }))
+        );
+      }
+
+      if (Array.isArray(draft.deletedIds)) {
+        setDeletedIds(draft.deletedIds);
+      }
+    } catch (error) {
+      console.warn(
+        "Unable to load Work Day draft:",
+        error
+      );
+    } finally {
+      setDraftLoaded(true);
+    }
+  }, [
+    dayId,
+    cinemaId,
+    existingReports.length,
+    draftLoaded,
+  ]);
+
+  /* ========================================================
+     AUTO SAVE LOCAL DRAFT
+  ======================================================== */
+
+  useEffect(() => {
+    if (!draftLoaded) {
+      return;
+    }
+
+    try {
+      const key = getStorageKey(
+        dayId,
+        cinemaId
+      );
+
+      const draft = {
+        rows,
+        deletedIds,
+        savedAt: new Date().toISOString(),
+      };
+
+      window.localStorage.setItem(
+        key,
+        JSON.stringify(draft)
+      );
+    } catch (error) {
+      console.warn(
+        "Unable to save Work Day draft:",
+        error
+      );
+    }
+  }, [
+    rows,
+    deletedIds,
+    dayId,
+    cinemaId,
+    draftLoaded,
+  ]);
+
+  /* ========================================================
+     TOTALS
+  ======================================================== */
 
   const totals = useMemo(() => {
     return rows.reduce(
-      (sum, row) => ({
-        tickets:
-          sum.tickets +
-          Number(row.tickets || 0),
-
-        revenue:
-          sum.revenue +
-          Number(row.revenue || 0),
-
-        filled:
-          sum.filled +
-          (row.movieId ||
+      (sum, row) => {
+        const hasData =
+          row.movieId ||
           row.versionId ||
           row.tickets ||
-          row.revenue
-            ? 1
-            : 0),
-      }),
+          row.revenue;
+
+        return {
+          tickets:
+            sum.tickets +
+            safeNumber(row.tickets),
+
+          revenue:
+            sum.revenue +
+            safeNumber(row.revenue),
+
+          filled:
+            sum.filled +
+            (hasData ? 1 : 0),
+        };
+      },
       {
         tickets: 0,
         revenue: 0,
@@ -247,6 +368,47 @@ export default function WorkDayForm({
     );
   }, [rows]);
 
+  /* ========================================================
+     MOVIE / VERSION HELPERS
+  ======================================================== */
+
+  function getMovie(movieId) {
+    return movies.find(
+      (movie) =>
+        String(movie.id) ===
+        String(movieId)
+    );
+  }
+
+  function getMovieVersions(movieId) {
+    if (!movieId) {
+      return versions;
+    }
+
+    const movieSpecific =
+      versions.filter(
+        (version) =>
+          version.movie_id === undefined ||
+          version.movie_id === null ||
+          String(version.movie_id) ===
+            String(movieId)
+      );
+
+    return movieSpecific;
+  }
+
+  function getVersion(versionId) {
+    return versions.find(
+      (version) =>
+        String(version.id) ===
+        String(versionId)
+    );
+  }
+
+  /* ========================================================
+     ROW OPERATIONS
+  ======================================================== */
+
   function addRow() {
     setRows((prev) => [
       ...prev,
@@ -254,17 +416,27 @@ export default function WorkDayForm({
     ]);
   }
 
-  function updateRow(
-    index,
-    field,
-    value
-  ) {
+  function updateRow(index, field, value) {
     setRows((prev) =>
       prev.map((row, i) =>
         i === index
           ? {
               ...row,
               [field]: value,
+            }
+          : row
+      )
+    );
+  }
+
+  function updateMovie(index, movieId) {
+    setRows((prev) =>
+      prev.map((row, i) =>
+        i === index
+          ? {
+              ...row,
+              movieId,
+              versionId: "",
             }
           : row
       )
@@ -279,18 +451,25 @@ export default function WorkDayForm({
     }
 
     if (row.id) {
-      const ok = confirm(
-        t.confirmDeleteMovie
+      const confirmMessage =
+        t.confirmDeleteMovie ||
+        "Delete this saved movie entry?";
+
+      const ok = window.confirm(
+        confirmMessage
       );
 
       if (!ok) {
         return;
       }
 
-      setDeletedIds((prev) => [
-        ...prev,
-        row.id,
-      ]);
+      setDeletedIds((prev) => {
+        if (prev.includes(row.id)) {
+          return prev;
+        }
+
+        return [...prev, row.id];
+      });
     }
 
     setRows((prev) => {
@@ -304,36 +483,66 @@ export default function WorkDayForm({
     });
   }
 
-  function openCinema(id) {
-    if (!id) {
+  /* ========================================================
+     DUPLICATE CHECK
+  ======================================================== */
+
+  function findDuplicateRows() {
+    const seen = new Map();
+    const duplicates = [];
+
+    rows.forEach((row, index) => {
+      const movieId =
+        String(row.movieId || "").trim();
+
+      const versionId =
+        String(row.versionId || "").trim();
+
+      if (!movieId) {
+        return;
+      }
+
+      const key =
+        `${movieId}__${versionId}`;
+
+      if (seen.has(key)) {
+        duplicates.push({
+          first: seen.get(key),
+          second: index,
+          key,
+        });
+      } else {
+        seen.set(key, index);
+      }
+    });
+
+    return duplicates;
+  }
+
+  /* ========================================================
+     SAVE
+  ======================================================== */
+
+  async function handleSave() {
+    if (saving) {
       return;
     }
 
-    router.push(
-      `/admin/work-day/${dayId}/cinema/${id}`
-    );
-  }
-
-  async function handleSave() {
     const payload = [];
     const usedReports = new Set();
 
     for (const row of rows) {
-      const movieId = String(
-        row.movieId || ""
-      ).trim();
+      const movieId =
+        String(row.movieId || "").trim();
 
-      const versionId = String(
-        row.versionId || ""
-      ).trim();
+      const versionId =
+        String(row.versionId || "").trim();
 
-      const tickets = String(
-        row.tickets || ""
-      ).trim();
+      const tickets =
+        String(row.tickets || "").trim();
 
-      const revenue = String(
-        row.revenue || ""
-      ).trim();
+      const revenue =
+        String(row.revenue || "").trim();
 
       const hasAnyData =
         movieId ||
@@ -346,35 +555,77 @@ export default function WorkDayForm({
       }
 
       if (!movieId) {
-        alert(t.selectMovieFirst);
+        window.alert(
+          t.selectMovieFirst ||
+            "Please select a movie first."
+        );
+        return;
+      }
+
+      const ticketNumber =
+        safeNumber(tickets);
+
+      const revenueNumber =
+        safeNumber(revenue);
+
+      if (
+        ticketNumber < 0 ||
+        revenueNumber < 0
+      ) {
+        window.alert(
+          "Tickets and revenue cannot be negative."
+        );
         return;
       }
 
       const reportKey =
-        `${movieId}_${versionId}`;
+        `${movieId}__${versionId}`;
 
       if (usedReports.has(reportKey)) {
-        alert(t.duplicateMovie);
+        window.alert(
+          t.duplicateMovie ||
+            "The same movie/version cannot be entered twice."
+        );
         return;
       }
 
       usedReports.add(reportKey);
 
       payload.push({
-        id: row.id,
+        id: row.id || undefined,
+
         day_id: Number(dayId),
+
         cinema_id: Number(cinemaId),
+
         movie_id: Number(movieId),
+
         version_id: versionId
           ? Number(versionId)
           : null,
-        tickets: Number(tickets || 0),
-        revenue: Number(revenue || 0),
+
+        tickets: ticketNumber,
+
+        revenue: revenueNumber,
       });
     }
 
     if (!payload.length) {
-      alert(t.enterAtLeastOneMovie);
+      window.alert(
+        t.enterAtLeastOneMovie ||
+          "Please enter at least one movie."
+      );
+      return;
+    }
+
+    const duplicateRows =
+      findDuplicateRows();
+
+    if (duplicateRows.length) {
+      window.alert(
+        t.duplicateMovie ||
+          "Duplicate movie/version detected."
+      );
       return;
     }
 
@@ -389,377 +640,889 @@ export default function WorkDayForm({
           })
         );
 
-      if (!result.success) {
-        alert(result.message);
+      if (!result?.success) {
+        window.alert(
+          result?.message ||
+            "Unable to save the report."
+        );
+
         return;
       }
 
-      alert(t.savedSuccessfully);
-
       /*
-        بعد الحفظ نعيد تحميل الصفحة من قاعدة البيانات.
-        بهذا الشكل أي بيانات محفوظة تظل موجودة حتى بعد
-        إغلاق الصفحة أو المتصفح.
+        Save succeeded.
+        The database is now the official source.
       */
-      router.refresh();
+      try {
+        const key = getStorageKey(
+          dayId,
+          cinemaId
+        );
+
+        window.localStorage.removeItem(key);
+      } catch (error) {
+        console.warn(
+          "Unable to clear local draft:",
+          error
+        );
+      }
+
+      window.alert(
+        t.savedSuccessfully ||
+          "Saved successfully."
+      );
+
       window.location.reload();
+    } catch (error) {
+      console.error(
+        "Work Day Save Error:",
+        error
+      );
+
+      window.alert(
+        error?.message ||
+          "An unexpected error occurred while saving."
+      );
     } finally {
       setSaving(false);
     }
   }
 
+  /* ========================================================
+     CLEAR DRAFT
+  ======================================================== */
+
+  function clearDraft() {
+    const ok = window.confirm(
+      "Clear the current unsaved draft?"
+    );
+
+    if (!ok) {
+      return;
+    }
+
+    try {
+      const key = getStorageKey(
+        dayId,
+        cinemaId
+      );
+
+      window.localStorage.removeItem(key);
+    } catch (error) {
+      console.warn(
+        "Unable to clear draft:",
+        error
+      );
+    }
+
+    setRows(
+      existingReports.length
+        ? existingReports.map(reportToRow)
+        : [createBlankRow()]
+    );
+
+    setDeletedIds([]);
+  }
+
+  /* ========================================================
+     DISPLAY FILTER
+  ======================================================== */
+
+  const displayedRows =
+    showOnlyFilled
+      ? rows.filter(
+          (row) =>
+            row.movieId ||
+            row.versionId ||
+            row.tickets ||
+            row.revenue
+        )
+      : rows;
+
+  /* ========================================================
+     RENDER
+  ======================================================== */
+
   return (
     <section style={shellStyle}>
-      {/* ==================================================
-          CINEMA SEARCH
-      ================================================== */}
-
-      <div style={cinemaSearchBoxStyle}>
-        <div>
-          <p style={eyebrowStyle}>
-            Cinema Selection
-          </p>
-
-          <h3 style={cinemaSearchTitleStyle}>
-            🏢 {currentCinema?.name || "Cinema"}
-          </h3>
-        </div>
-
-        <div style={cinemaSearchControlsStyle}>
-          <input
-            type="search"
-            value={cinemaSearch}
-            onChange={(e) =>
-              setCinemaSearch(
-                e.target.value
-              )
-            }
-            placeholder="🔎 Search cinema name..."
-            style={cinemaSearchInputStyle}
-          />
-
-          {cinemaSearch.trim() && (
-            <div style={cinemaResultsStyle}>
-              {filteredCinemas.length ? (
-                filteredCinemas.map(
-                  (cinema) => (
-                    <button
-                      key={cinema.id}
-                      type="button"
-                      onClick={() =>
-                        openCinema(
-                          cinema.id
-                        )
-                      }
-                      style={{
-                        ...cinemaResultButtonStyle,
-                        ...(String(
-                          cinema.id
-                        ) ===
-                        String(cinemaId)
-                          ? selectedCinemaButtonStyle
-                          : {}),
-                      }}
-                    >
-                      <strong>
-                        {cinema.name}
-                      </strong>
-
-                      {cinema.code && (
-                        <span>
-                          {cinema.code}
-                        </span>
-                      )}
-                    </button>
-                  )
-                )
-              ) : (
-                <div style={noCinemaResultStyle}>
-                  No cinema found
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ==================================================
+      {/* ====================================================
           HEADER
-      ================================================== */}
+      ==================================================== */}
 
       <div style={headerStyle}>
         <div>
           <p style={eyebrowStyle}>
-            Manual Entry
+            BOXOFFICE • MANUAL ENTRY
           </p>
 
           <h2 style={titleStyle}>
-            🎬 {t.enterRevenue}
+            🎬{" "}
+            {t.enterRevenue ||
+              "Enter Box Office Revenue"}
           </h2>
+
+          <p style={subTitleStyle}>
+            Enter each movie once per version.
+            2D, 3D, IMAX and language versions
+            remain separate for accurate reporting.
+          </p>
         </div>
 
         <div style={summaryGridStyle}>
           <SummaryCard
-            label={t.addMovie}
+            icon="🎬"
+            label={
+              t.addMovie ||
+              "Movies"
+            }
             value={totals.filled}
           />
 
           <SummaryCard
-            label={t.totalTickets}
+            icon="🎟️"
+            label={
+              t.totalTickets ||
+              "Tickets"
+            }
             value={numberValue(
               totals.tickets
             )}
           />
 
           <SummaryCard
-            label={t.totalRevenue}
-            value={numberValue(
+            icon="💰"
+            label={
+              t.totalRevenue ||
+              "Revenue"
+            }
+            value={moneyValue(
               totals.revenue
             )}
           />
         </div>
       </div>
 
-      {/* ==================================================
-          MOVIE ROWS
-      ================================================== */}
+      {/* ====================================================
+          TOOLBAR
+      ==================================================== */}
 
-      <div style={rowsStyle}>
-        {rows.map((row, index) => {
-          const selectedMovie =
-            movies.find(
-              (movie) =>
-                String(movie.id) ===
-                String(row.movieId)
-            );
+      <div style={toolbarStyle}>
+        <div style={toolbarLeftStyle}>
+          <button
+            type="button"
+            onClick={addRow}
+            style={addButtonStyle}
+          >
+            ➕{" "}
+            {t.addMovie ||
+              "Add Movie"}
+          </button>
 
-          return (
-            <article
-              key={
-                row.id ??
-                `new-${index}`
-              }
-              style={rowCardStyle}
-            >
-              <div style={rowHeaderStyle}>
-                <strong>
-                  #{index + 1}
-                </strong>
+          <button
+            type="button"
+            onClick={() =>
+              setShowOnlyFilled(
+                (value) => !value
+              )
+            }
+            style={
+              showOnlyFilled
+                ? activeFilterButtonStyle
+                : filterButtonStyle
+            }
+          >
+            {showOnlyFilled
+              ? "👁️ Showing Filled"
+              : "👁️ Show Filled Only"}
+          </button>
+        </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    removeRow(index)
-                  }
-                  style={
-                    deleteButtonStyle
-                  }
-                >
-                  🗑️ {t.delete}
-                </button>
-              </div>
+        <div style={draftStatusStyle}>
+          <span style={draftDotStyle} />
 
-              <div style={fieldsGridStyle}>
-                {/* MOVIE */}
-
-                <label style={fieldStyle}>
-                  <span style={labelStyle}>
-                    {t.selectMovie}
-                  </span>
-
-                  <select
-                    value={row.movieId}
-                    onChange={(e) =>
-                      updateRow(
-                        index,
-                        "movieId",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
-                    <option value="">
-                      {t.selectMovie}
-                    </option>
-
-                    {movies.map(
-                      (movie) => (
-                        <option
-                          key={movie.id}
-                          value={movie.id}
-                        >
-                          {movie.code}
-                          {" - "}
-                          {movie.title}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </label>
-
-                {/* VERSION */}
-
-                <label style={fieldStyle}>
-                  <span style={labelStyle}>
-                    Movie Type / Version
-                  </span>
-
-                  <select
-                    value={row.versionId}
-                    onChange={(e) =>
-                      updateRow(
-                        index,
-                        "versionId",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
-                    <option value="">
-                      {t.selectVersion}
-                    </option>
-
-                    {sortedVersions.map(
-                      (version) => (
-                        <option
-                          key={version.id}
-                          value={version.id}
-                        >
-                          {versionLabel(
-                            version,
-                            t
-                          )}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </label>
-
-                {/* TICKETS */}
-
-                <label style={fieldStyle}>
-                  <span style={labelStyle}>
-                    {t.totalTickets}
-                  </span>
-
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={row.tickets}
-                    onChange={(e) =>
-                      updateRow(
-                        index,
-                        "tickets",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-                </label>
-
-                {/* REVENUE */}
-
-                <label style={fieldStyle}>
-                  <span style={labelStyle}>
-                    {t.totalRevenue}
-                  </span>
-
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={row.revenue}
-                    onChange={(e) =>
-                      updateRow(
-                        index,
-                        "revenue",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-                </label>
-              </div>
-
-              {selectedMovie && (
-                <div style={moviePreviewStyle}>
-                  {selectedMovie.poster && (
-                    <img
-                      src={
-                        selectedMovie.poster
-                      }
-                      alt={
-                        selectedMovie.title
-                      }
-                      style={posterStyle}
-                    />
-                  )}
-
-                  <div>
-                    <strong>
-                      {selectedMovie.title}
-                    </strong>
-
-                    <p
-                      style={
-                        mutedTextStyle
-                      }
-                    >
-                      {selectedMovie.code}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </article>
-          );
-        })}
+          <span>
+            Draft saved automatically
+          </span>
+        </div>
       </div>
 
-      {/* ==================================================
-          ACTIONS
-      ================================================== */}
+      {/* ====================================================
+          ROWS
+      ==================================================== */}
 
-      <div style={actionsStyle}>
-        <button
-          type="button"
-          onClick={addRow}
-          style={addButtonStyle}
-        >
-          ➕ {t.addMovie}
-        </button>
+      <div style={rowsStyle}>
+        {displayedRows.map(
+          (row, displayIndex) => {
+            const realIndex =
+              rows.findIndex(
+                (item) =>
+                  item._key ===
+                  row._key
+              );
 
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          style={{
-            ...saveButtonStyle,
-            opacity: saving ? 0.65 : 1,
-          }}
+            const selectedMovie =
+              getMovie(row.movieId);
+
+            const movieVersions =
+              getMovieVersions(
+                row.movieId
+              );
+
+            const selectedVersion =
+              getVersion(
+                row.versionId
+              );
+
+            return (
+              <article
+                key={
+                  row._key ||
+                  row.id ||
+                  `row-${displayIndex}`
+                }
+                style={
+                  rowCardStyle
+                }
+              >
+                {/* ==========================================
+                    ROW HEADER
+                ========================================== */}
+
+                <div
+                  style={
+                    rowHeaderStyle
+                  }
+                >
+                  <div
+                    style={
+                      rowNumberWrapStyle
+                    }
+                  >
+                    <span
+                      style={
+                        rowNumberStyle
+                      }
+                    >
+                      {realIndex + 1}
+                    </span>
+
+                    <div>
+                      <strong
+                        style={
+                          rowTitleStyle
+                        }
+                      >
+                        {selectedMovie
+                          ?.title ||
+                          "New Movie Entry"}
+                      </strong>
+
+                      {selectedMovie
+                        ?.code && (
+                        <span
+                          style={
+                            rowCodeStyle
+                          }
+                        >
+                          {selectedMovie.code}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      removeRow(
+                        realIndex
+                      )
+                    }
+                    style={
+                      deleteButtonStyle
+                    }
+                  >
+                    🗑️{" "}
+                    {t.delete ||
+                      "Delete"}
+                  </button>
+                </div>
+
+                {/* ==========================================
+                    MAIN FIELDS
+                ========================================== */}
+
+                <div
+                  style={
+                    fieldsGridStyle
+                  }
+                >
+                  {/* MOVIE */}
+
+                  <label
+                    style={
+                      fieldStyle
+                    }
+                  >
+                    <span
+                      style={
+                        labelStyle
+                      }
+                    >
+                      🎬{" "}
+                      {t.selectMovie ||
+                        "Movie"}
+                    </span>
+
+                    <select
+                      value={
+                        row.movieId
+                      }
+                      onChange={(e) =>
+                        updateMovie(
+                          realIndex,
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    >
+                      <option value="">
+                        {t.selectMovie ||
+                          "Select movie"}
+                      </option>
+
+                      {movies.map(
+                        (movie) => (
+                          <option
+                            key={
+                              movie.id
+                            }
+                            value={
+                              movie.id
+                            }
+                          >
+                            {movie.code
+                              ? `${movie.code} - `
+                              : ""}
+                            {
+                              movie.title
+                            }
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </label>
+
+                  {/* VERSION */}
+
+                  <label
+                    style={
+                      fieldStyle
+                    }
+                  >
+                    <span
+                      style={
+                        labelStyle
+                      }
+                    >
+                      🎞️{" "}
+                      {t.selectVersion ||
+                        "Version / Format"}
+                    </span>
+
+                    <select
+                      value={
+                        row.versionId
+                      }
+                      onChange={(e) =>
+                        updateRow(
+                          realIndex,
+                          "versionId",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                      disabled={
+                        !row.movieId
+                      }
+                    >
+                      <option value="">
+                        {!row.movieId
+                          ? "Select movie first"
+                          : t.selectVersion ||
+                            "Select version"}
+                      </option>
+
+                      {movieVersions.map(
+                        (version) => {
+                          const info =
+                            getVersionInfo(
+                              version.name
+                            );
+
+                          return (
+                            <option
+                              key={
+                                version.id
+                              }
+                              value={
+                                version.id
+                              }
+                            >
+                              {versionDisplayName(
+                                version
+                              )}
+                            </option>
+                          );
+                        }
+                      )}
+                    </select>
+                  </label>
+
+                  {/* TICKETS */}
+
+                  <label
+                    style={
+                      fieldStyle
+                    }
+                  >
+                    <span
+                      style={
+                        labelStyle
+                      }
+                    >
+                      🎟️{" "}
+                      {t.totalTickets ||
+                        "Tickets"}
+                    </span>
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={
+                        row.tickets
+                      }
+                      onChange={(e) =>
+                        updateRow(
+                          realIndex,
+                          "tickets",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    />
+                  </label>
+
+                  {/* REVENUE */}
+
+                  <label
+                    style={
+                      fieldStyle
+                    }
+                  >
+                    <span
+                      style={
+                        labelStyle
+                      }
+                    >
+                      💰{" "}
+                      {t.totalRevenue ||
+                        "Revenue"}
+                    </span>
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={
+                        row.revenue
+                      }
+                      onChange={(e) =>
+                        updateRow(
+                          realIndex,
+                          "revenue",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    />
+                  </label>
+                </div>
+
+                {/* ==========================================
+                    MOVIE INFORMATION
+                ========================================== */}
+
+                {selectedMovie && (
+                  <div
+                    style={
+                      moviePreviewStyle
+                    }
+                  >
+                    {selectedMovie.poster ? (
+                      <img
+                        src={
+                          selectedMovie.poster
+                        }
+                        alt={
+                          selectedMovie.title ||
+                          "Movie"
+                        }
+                        style={
+                          posterStyle
+                        }
+                        onError={(
+                          e
+                        ) => {
+                          e.currentTarget.style.display =
+                            "none";
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={
+                          posterPlaceholderStyle
+                        }
+                      >
+                        🎬
+                      </div>
+                    )}
+
+                    <div
+                      style={
+                        movieInfoStyle
+                      }
+                    >
+                      <div
+                        style={
+                          movieNameStyle
+                        }
+                      >
+                        {
+                          selectedMovie.title
+                        }
+                      </div>
+
+                      {selectedMovie.code && (
+                        <div
+                          style={
+                            mutedTextStyle
+                          }
+                        >
+                          {
+                            selectedMovie.code
+                          }
+                        </div>
+                      )}
+
+                      {selectedVersion && (
+                        <div
+                          style={
+                            versionBadgeRowStyle
+                          }
+                        >
+                          <span
+                            style={
+                              versionBadgeStyle
+                            }
+                          >
+                            🎞️{" "}
+                            {versionDisplayName(
+                              selectedVersion
+                            )}
+                          </span>
+
+                          {getVersionInfo(
+                            selectedVersion.name
+                          ).language && (
+                            <span
+                              style={
+                                secondaryBadgeStyle
+                              }
+                            >
+                              {
+                                getVersionInfo(
+                                  selectedVersion.name
+                                ).language
+                              }
+                            </span>
+                          )}
+
+                          {getVersionInfo(
+                            selectedVersion.name
+                          ).format && (
+                            <span
+                              style={
+                                secondaryBadgeStyle
+                              }
+                            >
+                              {
+                                getVersionInfo(
+                                  selectedVersion.name
+                                ).format
+                              }
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div
+                      style={
+                        rowTotalsStyle
+                      }
+                    >
+                      <div>
+                        <span
+                          style={
+                            miniLabelStyle
+                          }
+                        >
+                          Tickets
+                        </span>
+
+                        <strong
+                          style={
+                            miniValueStyle
+                          }
+                        >
+                          {numberValue(
+                            row.tickets
+                          )}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span
+                          style={
+                            miniLabelStyle
+                          }
+                        >
+                          Revenue
+                        </span>
+
+                        <strong
+                          style={
+                            miniValueStyle
+                          }
+                        >
+                          {moneyValue(
+                            row.revenue
+                          )}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </article>
+            );
+          }
+        )}
+      </div>
+
+      {/* ====================================================
+          EMPTY STATE
+      ==================================================== */}
+
+      {!displayedRows.length && (
+        <div
+          style={
+            emptyStateStyle
+          }
         >
-          {saving
-            ? "Saving..."
-            : `💾 ${t.save}`}
-        </button>
+          <div
+            style={
+              emptyIconStyle
+            }
+          >
+            🎬
+          </div>
+
+          <strong>
+            No entries to display
+          </strong>
+
+          <span>
+            Add a movie to start entering
+            the box office report.
+          </span>
+
+          <button
+            type="button"
+            onClick={addRow}
+            style={
+              addButtonStyle
+            }
+          >
+            ➕ Add Movie
+          </button>
+        </div>
+      )}
+
+      {/* ====================================================
+          FOOTER ACTIONS
+      ==================================================== */}
+
+      <div
+        style={
+          footerStyle
+        }
+      >
+        <div
+          style={
+            footerSummaryStyle
+          }
+        >
+          <div>
+            <span
+              style={
+                footerLabelStyle
+              }
+            >
+              Total Tickets
+            </span>
+
+            <strong
+              style={
+                footerValueStyle
+              }
+            >
+              {numberValue(
+                totals.tickets
+              )}
+            </strong>
+          </div>
+
+          <div>
+            <span
+              style={
+                footerLabelStyle
+              }
+            >
+              Total Revenue
+            </span>
+
+            <strong
+              style={
+                footerRevenueStyle
+              }
+            >
+              💰{" "}
+              {moneyValue(
+                totals.revenue
+              )}
+            </strong>
+          </div>
+        </div>
+
+        <div
+          style={
+            footerButtonsStyle
+          }
+        >
+          <button
+            type="button"
+            onClick={clearDraft}
+            disabled={saving}
+            style={
+              clearButtonStyle
+            }
+          >
+            ↩️ Reset Draft
+          </button>
+
+          <button
+            type="button"
+            onClick={addRow}
+            disabled={saving}
+            style={
+              addButtonStyle
+            }
+          >
+            ➕{" "}
+            {t.addMovie ||
+              "Add Movie"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              ...saveButtonStyle,
+              opacity: saving
+                ? 0.6
+                : 1,
+              cursor: saving
+                ? "not-allowed"
+                : "pointer",
+            }}
+          >
+            {saving
+              ? "⏳ Saving..."
+              : `💾 ${
+                  t.save ||
+                  "Save Report"
+                }`}
+          </button>
+        </div>
       </div>
     </section>
   );
 }
 
+/* ==========================================================
+   SUMMARY CARD
+========================================================== */
+
 function SummaryCard({
+  icon,
   label,
   value,
 }) {
   return (
-    <div style={summaryCardStyle}>
-      <span style={summaryLabelStyle}>
-        {label}
-      </span>
+    <div
+      style={
+        summaryCardStyle
+      }
+    >
+      <div
+        style={
+          summaryIconStyle
+        }
+      >
+        {icon}
+      </div>
 
-      <strong style={summaryValueStyle}>
-        {value}
-      </strong>
+      <div>
+        <span
+          style={
+            summaryLabelStyle
+          }
+        >
+          {label}
+        </span>
+
+        <strong
+          style={
+            summaryValueStyle
+          }
+        >
+          {value}
+        </strong>
+      </div>
     </div>
   );
 }
@@ -769,177 +1532,235 @@ function SummaryCard({
 ========================================================== */
 
 const shellStyle = {
-  background: "#111827",
-  border: "1px solid #334155",
-  borderRadius: 12,
+  background:
+    "linear-gradient(145deg,#0b1220 0%,#111827 55%,#0b1220 100%)",
+  border:
+    "1px solid rgba(148,163,184,.20)",
+  borderRadius: 18,
   padding: 22,
-};
-
-const cinemaSearchBoxStyle = {
-  background: "#0b1220",
-  border: "1px solid #334155",
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 20,
-  display: "grid",
-  gridTemplateColumns:
-    "minmax(220px,0.7fr) minmax(280px,1.3fr)",
-  gap: 18,
-  alignItems: "start",
-};
-
-const cinemaSearchTitleStyle = {
-  margin: "7px 0 0",
-  fontSize: 20,
-};
-
-const cinemaSearchControlsStyle = {
-  position: "relative",
-};
-
-const cinemaSearchInputStyle = {
-  width: "100%",
-  minHeight: 46,
-  padding: "10px 14px",
-  borderRadius: 9,
-  border: "1px solid #475569",
-  background: "#111827",
-  color: "#fff",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const cinemaResultsStyle = {
-  marginTop: 8,
-  background: "#111827",
-  border: "1px solid #334155",
-  borderRadius: 9,
-  maxHeight: 280,
-  overflowY: "auto",
-  padding: 6,
-};
-
-const cinemaResultButtonStyle = {
-  width: "100%",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 10,
-  padding: "10px 12px",
-  borderRadius: 7,
-  border: "1px solid transparent",
-  background: "transparent",
-  color: "#fff",
-  cursor: "pointer",
-  textAlign: "left",
-};
-
-const selectedCinemaButtonStyle = {
-  background: "#1d4ed8",
-  border: "1px solid #3b82f6",
-};
-
-const noCinemaResultStyle = {
-  padding: 14,
-  color: "#9ca3af",
-  textAlign: "center",
+  boxShadow:
+    "0 20px 50px rgba(0,0,0,.28)",
 };
 
 const headerStyle = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit,minmax(260px,1fr))",
-  gap: 18,
-  alignItems: "start",
-  marginBottom: 20,
+    "minmax(280px,1.25fr) minmax(320px,1fr)",
+  gap: 22,
+  alignItems: "center",
+  marginBottom: 22,
 };
 
 const eyebrowStyle = {
   margin: 0,
   color: "#facc15",
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 900,
+  letterSpacing: 1.4,
   textTransform: "uppercase",
 };
 
 const titleStyle = {
-  margin: "8px 0 0",
-  fontSize: 28,
+  margin:
+    "7px 0 8px",
+  fontSize: 29,
+  lineHeight: 1.15,
+  fontWeight: 950,
+  color: "#fff",
+};
+
+const subTitleStyle = {
+  margin: 0,
+  maxWidth: 720,
+  color: "#94a3b8",
+  lineHeight: 1.6,
+  fontSize: 13,
 };
 
 const summaryGridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit,minmax(120px,1fr))",
+    "repeat(3,minmax(100px,1fr))",
   gap: 10,
 };
 
 const summaryCardStyle = {
-  background: "#0f172a",
-  border: "1px solid #334155",
-  borderRadius: 8,
-  padding: 12,
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  minHeight: 76,
+  padding: "13px 14px",
+  borderRadius: 13,
+  background:
+    "linear-gradient(145deg,#111c30,#0c1424)",
+  border:
+    "1px solid rgba(148,163,184,.16)",
+};
+
+const summaryIconStyle = {
+  width: 38,
+  height: 38,
+  display: "grid",
+  placeItems: "center",
+  borderRadius: 11,
+  background:
+    "rgba(250,204,21,.10)",
+  fontSize: 19,
 };
 
 const summaryLabelStyle = {
   display: "block",
-  color: "#9ca3af",
-  fontSize: 12,
-  marginBottom: 6,
+  color: "#94a3b8",
+  fontSize: 10,
+  fontWeight: 800,
+  marginBottom: 4,
 };
 
 const summaryValueStyle = {
   color: "#fff",
   fontSize: 20,
+  fontWeight: 950,
+};
+
+const toolbarStyle = {
+  display: "flex",
+  justifyContent:
+    "space-between",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap",
+  padding:
+    "12px 14px",
+  marginBottom: 14,
+  borderRadius: 13,
+  background:
+    "rgba(15,23,42,.72)",
+  border:
+    "1px solid rgba(148,163,184,.13)",
+};
+
+const toolbarLeftStyle = {
+  display: "flex",
+  gap: 9,
+  flexWrap: "wrap",
+};
+
+const draftStatusStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
+  color: "#94a3b8",
+  fontSize: 11,
+  fontWeight: 700,
+};
+
+const draftDotStyle = {
+  width: 7,
+  height: 7,
+  borderRadius: "50%",
+  background: "#22c55e",
+  boxShadow:
+    "0 0 10px rgba(34,197,94,.55)",
 };
 
 const rowsStyle = {
   display: "grid",
-  gap: 14,
+  gap: 13,
 };
 
 const rowCardStyle = {
-  background: "#0f172a",
-  border: "1px solid #263244",
-  borderRadius: 10,
+  background:
+    "linear-gradient(145deg,#111827,#0d1626)",
+  border:
+    "1px solid rgba(148,163,184,.15)",
+  borderRadius: 15,
   padding: 16,
 };
 
 const rowHeaderStyle = {
   display: "flex",
-  justifyContent: "space-between",
+  justifyContent:
+    "space-between",
   alignItems: "center",
-  gap: 10,
-  marginBottom: 14,
+  gap: 12,
+  marginBottom: 15,
+};
+
+const rowNumberWrapStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 11,
+  minWidth: 0,
+};
+
+const rowNumberStyle = {
+  width: 34,
+  height: 34,
+  display: "grid",
+  placeItems: "center",
+  flexShrink: 0,
+  borderRadius: 10,
+  background:
+    "rgba(37,99,235,.16)",
+  border:
+    "1px solid rgba(59,130,246,.25)",
+  color: "#93c5fd",
+  fontSize: 13,
+  fontWeight: 950,
+};
+
+const rowTitleStyle = {
+  display: "block",
+  color: "#fff",
+  fontSize: 14,
+  fontWeight: 900,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: 450,
+};
+
+const rowCodeStyle = {
+  display: "inline-block",
+  marginTop: 3,
+  color: "#64748b",
+  fontSize: 10,
+  fontWeight: 800,
 };
 
 const fieldsGridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit,minmax(180px,1fr))",
+    "minmax(220px,1.5fr) minmax(190px,1.15fr) minmax(130px,.7fr) minmax(150px,.8fr)",
   gap: 12,
 };
 
 const fieldStyle = {
   display: "grid",
-  gap: 6,
+  gap: 7,
 };
 
 const labelStyle = {
-  color: "#9ca3af",
-  fontSize: 12,
-  fontWeight: 800,
+  color: "#cbd5e1",
+  fontSize: 11,
+  fontWeight: 850,
 };
 
 const inputStyle = {
   width: "100%",
-  minHeight: 44,
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: "1px solid #334155",
-  background: "#111827",
-  color: "#fff",
+  minHeight: 46,
   boxSizing: "border-box",
+  padding:
+    "10px 12px",
+  borderRadius: 10,
+  border:
+    "1px solid #334155",
+  background:
+    "#0a1220",
+  color: "#fff",
+  outline: "none",
+  fontSize: 13,
+  fontWeight: 650,
 };
 
 const moviePreviewStyle = {
@@ -948,55 +1769,247 @@ const moviePreviewStyle = {
   gap: 12,
   marginTop: 14,
   paddingTop: 14,
-  borderTop: "1px solid #263244",
+  borderTop:
+    "1px solid rgba(148,163,184,.12)",
 };
 
 const posterStyle = {
-  width: 54,
-  height: 76,
+  width: 52,
+  height: 72,
+  flexShrink: 0,
   objectFit: "cover",
-  borderRadius: 6,
+  borderRadius: 9,
+  border:
+    "1px solid rgba(255,255,255,.12)",
+};
+
+const posterPlaceholderStyle = {
+  width: 52,
+  height: 72,
+  flexShrink: 0,
+  display: "grid",
+  placeItems: "center",
+  borderRadius: 9,
+  background:
+    "linear-gradient(145deg,#1e293b,#0f172a)",
+  border:
+    "1px solid rgba(255,255,255,.08)",
+  fontSize: 22,
+};
+
+const movieInfoStyle = {
+  minWidth: 0,
+  flex: 1,
+};
+
+const movieNameStyle = {
+  color: "#fff",
+  fontSize: 14,
+  fontWeight: 900,
 };
 
 const mutedTextStyle = {
-  margin: "6px 0 0",
-  color: "#9ca3af",
+  marginTop: 4,
+  color: "#64748b",
+  fontSize: 10,
+  fontWeight: 750,
 };
 
-const actionsStyle = {
+const versionBadgeRowStyle = {
   display: "flex",
-  justifyContent: "flex-end",
-  gap: 10,
   flexWrap: "wrap",
-  marginTop: 20,
+  gap: 6,
+  marginTop: 8,
+};
+
+const versionBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding:
+    "5px 8px",
+  borderRadius: 7,
+  background:
+    "rgba(37,99,235,.13)",
+  border:
+    "1px solid rgba(59,130,246,.22)",
+  color: "#93c5fd",
+  fontSize: 10,
+  fontWeight: 850,
+};
+
+const secondaryBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding:
+    "5px 8px",
+  borderRadius: 7,
+  background:
+    "rgba(148,163,184,.08)",
+  border:
+    "1px solid rgba(148,163,184,.14)",
+  color: "#cbd5e1",
+  fontSize: 10,
+  fontWeight: 800,
+};
+
+const rowTotalsStyle = {
+  display: "flex",
+  gap: 18,
+  flexShrink: 0,
+};
+
+const miniLabelStyle = {
+  display: "block",
+  color: "#64748b",
+  fontSize: 9,
+  fontWeight: 800,
+  marginBottom: 3,
+};
+
+const miniValueStyle = {
+  color: "#e2e8f0",
+  fontSize: 13,
+  fontWeight: 900,
+};
+
+const toolbarButtonBase = {
+  minHeight: 40,
+  padding:
+    "9px 13px",
+  borderRadius: 9,
+  fontSize: 11,
+  fontWeight: 850,
+  cursor: "pointer",
 };
 
 const addButtonStyle = {
-  background: "#16a34a",
-  color: "white",
-  border: "none",
-  padding: "12px 18px",
-  borderRadius: 8,
-  cursor: "pointer",
-  fontWeight: 800,
+  ...toolbarButtonBase,
+  background:
+    "linear-gradient(135deg,#16a34a,#15803d)",
+  color: "#fff",
+  border:
+    "1px solid rgba(74,222,128,.25)",
+  boxShadow:
+    "0 8px 18px rgba(22,163,74,.16)",
 };
 
-const saveButtonStyle = {
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  padding: "12px 22px",
-  borderRadius: 8,
-  cursor: "pointer",
-  fontWeight: 800,
+const filterButtonStyle = {
+  ...toolbarButtonBase,
+  background:
+    "#111827",
+  color: "#cbd5e1",
+  border:
+    "1px solid #334155",
+};
+
+const activeFilterButtonStyle = {
+  ...filterButtonStyle,
+  background:
+    "rgba(37,99,235,.16)",
+  color: "#93c5fd",
+  border:
+    "1px solid rgba(59,130,246,.35)",
 };
 
 const deleteButtonStyle = {
-  background: "#7f1d1d",
-  color: "white",
-  border: "1px solid #991b1b",
-  padding: "8px 12px",
-  borderRadius: 8,
-  cursor: "pointer",
+  ...toolbarButtonBase,
+  minHeight: 36,
+  padding:
+    "7px 11px",
+  background:
+    "rgba(127,29,29,.24)",
+  color: "#fca5a5",
+  border:
+    "1px solid rgba(248,113,113,.20)",
+};
+
+const clearButtonStyle = {
+  ...toolbarButtonBase,
+  background:
+    "#111827",
+  color: "#94a3b8",
+  border:
+    "1px solid #334155",
+};
+
+const saveButtonStyle = {
+  ...toolbarButtonBase,
+  minHeight: 46,
+  padding:
+    "11px 22px",
+  background:
+    "linear-gradient(135deg,#2563eb,#1d4ed8)",
+  color: "#fff",
+  border:
+    "1px solid rgba(96,165,250,.28)",
+  boxShadow:
+    "0 10px 24px rgba(37,99,235,.20)",
+  fontSize: 12,
+};
+
+const footerStyle = {
+  display: "flex",
+  justifyContent:
+    "space-between",
+  alignItems: "center",
+  gap: 18,
+  flexWrap: "wrap",
+  marginTop: 18,
+  paddingTop: 17,
+  borderTop:
+    "1px solid rgba(148,163,184,.14)",
+};
+
+const footerSummaryStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 28,
+  flexWrap: "wrap",
+};
+
+const footerLabelStyle = {
+  display: "block",
+  color: "#64748b",
+  fontSize: 10,
   fontWeight: 800,
+  marginBottom: 4,
+};
+
+const footerValueStyle = {
+  color: "#fff",
+  fontSize: 17,
+  fontWeight: 950,
+};
+
+const footerRevenueStyle = {
+  color: "#facc15",
+  fontSize: 17,
+  fontWeight: 950,
+};
+
+const footerButtonsStyle = {
+  display: "flex",
+  gap: 9,
+  flexWrap: "wrap",
+};
+
+const emptyStateStyle = {
+  minHeight: 230,
+  display: "grid",
+  placeItems: "center",
+  alignContent: "center",
+  gap: 9,
+  padding: 30,
+  borderRadius: 14,
+  background:
+    "rgba(15,23,42,.55)",
+  border:
+    "1px dashed rgba(148,163,184,.22)",
+  color: "#94a3b8",
+  textAlign: "center",
+};
+
+const emptyIconStyle = {
+  fontSize: 42,
+  marginBottom: 4,
 };

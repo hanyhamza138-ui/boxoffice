@@ -30,10 +30,16 @@ const emoji = {
 export default function HomeContent({
   movies = [],
   cinemasCount = 0,
+  totalRevenue = null,
+  totalAudience = null,
+  reportDate = null,
+  comparison = {},
   t = {},
 }) {
   const { isArabic } = useLanguage();
   const [filter, setFilter] = useState("all");
+  const [reportType, setReportType] = useState("all");
+  const [showReport, setShowReport] = useState(false);
 
   const font = isArabic
     ? "Cairo, Arial, sans-serif"
@@ -71,19 +77,29 @@ export default function HomeContent({
 
   const topMovie = filteredMovies[0];
 
-  const totalRevenue = movies.reduce(
+  const calculatedTotalRevenue = movies.reduce(
     (sum, movie) =>
       sum + (Number(movie.revenue) || 0),
     0
   );
 
-  const totalAudience = movies.reduce(
+  const displayTotalRevenue =
+    Number.isFinite(Number(totalRevenue))
+      ? Number(totalRevenue)
+      : calculatedTotalRevenue;
+
+  const calculatedTotalAudience = movies.reduce(
     (sum, movie) =>
       sum + (Number(movie.audience) || 0),
     0
   );
 
-  const today = new Date().toLocaleDateString(
+  const displayTotalAudience =
+    Number.isFinite(Number(totalAudience))
+      ? Number(totalAudience)
+      : calculatedTotalAudience;
+
+  const today = (reportDate ? new Date(`${reportDate}T00:00:00`) : new Date()).toLocaleDateString(
     isArabic ? "ar-EG" : "en-US",
     {
       weekday: "long",
@@ -235,7 +251,7 @@ export default function HomeContent({
               ? "إجمالي الإيرادات"
               : "Total Revenue"
           }
-          value={totalRevenue.toLocaleString()}
+          value={formatMoney(displayTotalRevenue)}
           color="#22c55e"
         />
 
@@ -246,7 +262,7 @@ export default function HomeContent({
               ? "إجمالي الجمهور"
               : "Total Audience"
           }
-          value={totalAudience.toLocaleString()}
+          value={formatNumber(displayTotalAudience)}
           color="#3b82f6"
         />
 
@@ -451,6 +467,68 @@ export default function HomeContent({
           );
         })}
       </div>
+
+      {/* =================================================
+          ONE-PAGE PDF REPORT
+      ================================================= */}
+
+      <section
+        style={{
+          marginBottom: 18,
+          padding: 14,
+          borderRadius: 16,
+          background: "linear-gradient(135deg,#111827,#171717)",
+          border: "1px solid #334155",
+        }}
+      >
+        <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>
+          {isArabic ? "تقرير PDF صفحة واحدة" : "One-Page PDF Report"}
+        </div>
+        <div style={{ color: "#94a3b8", fontSize: 11, marginBottom: 10 }}>
+          {isArabic
+            ? "اختر نوع الأفلام ثم اطبع التقرير واحفظه PDF — صفحة A4 واحدة."
+            : "Choose the film group, then print/save as PDF — one A4 page."}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[
+            { value: "ar", label: isArabic ? "🇪🇬 عربي" : "🇪🇬 Arabic" },
+            { value: "en", label: isArabic ? "🌍 أجنبي" : "🌍 Foreign" },
+            { value: "all", label: isArabic ? "🎬 الكل" : "🎬 All" },
+          ].map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => { setReportType(item.value); setShowReport(true); }}
+              style={{
+                border: "1px solid #475569",
+                background: "#0f172a",
+                color: "#fff",
+                borderRadius: 10,
+                padding: "9px 13px",
+                cursor: "pointer",
+                fontWeight: 900,
+                fontSize: 12,
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {showReport && (
+        <MovieReport
+          movies={movies}
+          reportType={reportType}
+          isArabic={isArabic}
+          reportDate={reportDate}
+          cinemasCount={cinemasCount}
+          totalRevenue={displayTotalRevenue}
+          totalAudience={displayTotalAudience}
+          comparison={comparison}
+          onClose={() => setShowReport(false)}
+        />
+      )}
 
       {/* =================================================
           MOVIE GRID
@@ -694,6 +772,166 @@ export default function HomeContent({
 }
 
 /* =========================================================
+   ONE-PAGE REPORT
+========================================================= */
+
+function MovieReport({
+  movies = [],
+  reportType = "all",
+  isArabic = false,
+  reportDate = null,
+  cinemasCount = 0,
+  totalRevenue = 0,
+  totalAudience = 0,
+  comparison = {},
+  onClose,
+}) {
+  const reportMovies = movies
+    .filter((movie) =>
+      reportType === "all" || movie.language === reportType
+    )
+    .sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0));
+
+  const reportRevenue = reportMovies.reduce((s, m) => s + Number(m.revenue || 0), 0);
+  const reportAudience = reportMovies.reduce((s, m) => s + Number(m.audience || 0), 0);
+
+  const title =
+    reportType === "ar"
+      ? (isArabic ? "تقرير الأفلام العربية" : "Arabic Movies Report")
+      : reportType === "en"
+        ? (isArabic ? "تقرير الأفلام الأجنبية" : "Foreign Movies Report")
+        : (isArabic ? "تقرير شباك التذاكر" : "Box Office Report");
+
+  const dayChange = Number(comparison.dayChange || 0);
+  const weekChange = Number(comparison.weekChange || 0);
+
+  return (
+    <div className="bo-report-overlay">
+      <div className="bo-report-toolbar">
+        <button type="button" onClick={onClose}>✕ {isArabic ? "إغلاق" : "Close"}</button>
+        <button type="button" onClick={() => window.print()}>🖨️ {isArabic ? "طباعة / حفظ PDF" : "Print / Save PDF"}</button>
+      </div>
+
+      <div className="bo-report-page" dir={isArabic ? "rtl" : "ltr"}>
+        <div className="bo-report-head">
+          <div>
+            <div className="bo-report-brand">BoxOffice Egypt</div>
+            <div className="bo-report-title">{title}</div>
+            <div className="bo-report-date">
+              {reportDate || new Date().toISOString().slice(0, 10)}
+            </div>
+          </div>
+          <div className="bo-report-summary">
+            <div><b>{formatMoney(reportRevenue)}</b><span>{isArabic ? "إيراد التقرير" : "Report Revenue"}</span></div>
+            <div><b>{formatNumber(reportAudience)}</b><span>{isArabic ? "التذاكر" : "Tickets"}</span></div>
+            <div><b>{formatNumber(cinemasCount)}</b><span>{isArabic ? "السينمات" : "Cinemas"}</span></div>
+          </div>
+        </div>
+
+        <div className="bo-report-comparison">
+          <div><span>{isArabic ? "اليوم" : "Today"}</span><b>{formatMoney(Number(comparison.todayRevenue ?? totalRevenue))}</b></div>
+          <div><span>{isArabic ? "أمس" : "Yesterday"}</span><b>{formatMoney(Number(comparison.yesterdayRevenue || 0))}</b></div>
+          <div><span>{isArabic ? "الأسبوع الحالي" : "This Week"}</span><b>{formatMoney(Number(comparison.currentWeekRevenue || totalRevenue))}</b></div>
+          <div><span>{isArabic ? "الأسبوع السابق" : "Previous Week"}</span><b>{formatMoney(Number(comparison.previousWeekRevenue || 0))}</b></div>
+          <div><span>{isArabic ? "فرق اليوم" : "Day Change"}</span><b className={dayChange >= 0 ? "bo-up" : "bo-down"}>{formatPercent(dayChange)}</b></div>
+          <div><span>{isArabic ? "فرق الأسبوع" : "Week Change"}</span><b className={weekChange >= 0 ? "bo-up" : "bo-down"}>{formatPercent(weekChange)}</b></div>
+        </div>
+
+        <div
+          className="bo-report-grid"
+          style={{
+            gridTemplateColumns:
+              reportMovies.length <= 8
+                ? "repeat(8, 1fr)"
+                : reportMovies.length <= 16
+                  ? "repeat(8, 1fr)"
+                  : reportMovies.length <= 24
+                    ? "repeat(10, 1fr)"
+                    : "repeat(12, 1fr)",
+          }}
+        >
+          {reportMovies.map((movie, index) => (
+            <div className="bo-report-movie" key={movie.id}>
+              <div
+                className="bo-report-poster"
+                style={{
+                  height:
+                    reportMovies.length <= 8
+                      ? "48mm"
+                      : reportMovies.length <= 16
+                        ? "40mm"
+                        : reportMovies.length <= 24
+                          ? "32mm"
+                          : "27mm",
+                }}
+              >
+                <img src={movie.poster || "https://placehold.co/180x270"} alt={movie.title || "Movie"} />
+              </div>
+              <div className="bo-report-rank">#{index + 1}</div>
+              <div className="bo-report-movie-name">{movie.title}</div>
+              <div className="bo-report-value">{formatMoney(movie.revenue)}</div>
+              <div className="bo-report-small">👥 {formatNumber(movie.audience)} &nbsp; 🎬 {formatNumber(movie.cinemas)}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="bo-report-footer">
+          <span>{isArabic ? "إجمالي كل الأفلام" : "All Movies Total"}: <b>{formatMoney(totalRevenue)}</b></span>
+          <span>{isArabic ? "إجمالي الجمهور" : "Total Audience"}: <b>{formatNumber(totalAudience)}</b></span>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .bo-report-overlay { position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,.92); overflow: auto; padding: 16px; }
+        .bo-report-toolbar { display:flex; justify-content:center; gap:8px; margin:0 auto 10px; }
+        .bo-report-toolbar button { border:1px solid #475569; background:#111827; color:#fff; border-radius:9px; padding:8px 12px; cursor:pointer; font-weight:800; }
+        .bo-report-page { width:297mm; height:210mm; max-width:100%; margin:auto; box-sizing:border-box; background:#fff; color:#111; padding:7mm; overflow:hidden; font-family:Arial,sans-serif; }
+        .bo-report-head { display:flex; justify-content:space-between; gap:8mm; border-bottom:2px solid #111; padding-bottom:4mm; }
+        .bo-report-brand { font-size:22px; font-weight:900; }
+        .bo-report-title { font-size:16px; font-weight:800; margin-top:2px; }
+        .bo-report-date { font-size:10px; color:#555; margin-top:2px; }
+        .bo-report-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:3mm; min-width:95mm; }
+        .bo-report-summary div, .bo-report-comparison div { border:1px solid #bbb; border-radius:5px; padding:2.5mm; text-align:center; }
+        .bo-report-summary b { display:block; font-size:14px; }
+        .bo-report-summary span, .bo-report-comparison span { display:block; font-size:8px; color:#555; margin-top:1px; }
+        .bo-report-comparison { display:grid; grid-template-columns:repeat(6,1fr); gap:2mm; margin:3mm 0; }
+        .bo-report-comparison b { display:block; font-size:10px; margin-top:2px; }
+        .bo-up { color:#15803d; } .bo-down { color:#b91c1c; }
+        .bo-report-grid { display:grid; gap:2.5mm; align-items:start; }
+        .bo-report-movie { position:relative; min-width:0; text-align:center; }
+        .bo-report-poster { width:100%; height:46mm; background:#eee; border-radius:4px; overflow:hidden; }
+        .bo-report-poster img { width:100%; height:100%; object-fit:cover; display:block; }
+        .bo-report-rank { font-size:8px; color:#777; margin-top:1px; }
+        .bo-report-movie-name { font-size:8.5px; font-weight:800; line-height:1.15; height:20px; overflow:hidden; margin-top:1px; }
+        .bo-report-value { font-size:9px; font-weight:900; margin-top:2px; }
+        .bo-report-small { font-size:7px; color:#555; margin-top:1px; white-space:nowrap; }
+        .bo-report-footer { display:flex; justify-content:space-between; border-top:1px solid #999; margin-top:3mm; padding-top:2mm; font-size:9px; }
+        @media print { @page { size:A4 landscape; margin:0; } body * { visibility:hidden !important; } .bo-report-overlay, .bo-report-overlay * { visibility:visible !important; } .bo-report-overlay { position:absolute !important; inset:0 !important; padding:0 !important; background:#fff !important; overflow:hidden !important; } .bo-report-toolbar { display:none !important; } .bo-report-page { width:297mm !important; height:210mm !important; max-width:none !important; margin:0 !important; box-shadow:none !important; } }
+      `}</style>
+    </div>
+  );
+}
+
+function formatMoney(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0.00";
+  const rounded = Math.round((n + Number.EPSILON) * 100) / 100;
+  return rounded.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatNumber(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0";
+  return Math.round(n).toLocaleString("en-US");
+}
+
+function formatPercent(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0.00%";
+  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+}
+
+/* =========================================================
    TOP METRIC
 ========================================================= */
 
@@ -723,7 +961,7 @@ function Metric({
           marginTop: 3,
         }}
       >
-        {(Number(value) || 0).toLocaleString()}
+        {formatNumber(value)}
       </div>
     </div>
   );
@@ -782,7 +1020,7 @@ function SmallMetric({
           textOverflow: "ellipsis",
         }}
       >
-        {(Number(value) || 0).toLocaleString()}
+        {formatNumber(value)}
       </div>
     </div>
   );

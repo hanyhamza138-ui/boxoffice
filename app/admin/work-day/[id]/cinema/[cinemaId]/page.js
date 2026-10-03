@@ -1,16 +1,17 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+
 import { supabase } from "../../../../../../lib/supabase";
+
 import WorkDayForm from "./WorkDayForm";
 import AdminNav from "../../../../../components/AdminNav";
+
 import ar from "../../../../../../translations/ar";
 import en from "../../../../../../translations/en";
 
 export const dynamic = "force-dynamic";
 
-export default async function CinemaPage({
-  params,
-}) {
+export default async function CinemaPage({ params }) {
   const { id, cinemaId } = await params;
 
   const cookieStore = await cookies();
@@ -23,122 +24,279 @@ export default async function CinemaPage({
       ? ar
       : en;
 
-  /* ==========================================================
-     WORK DAY
-  ========================================================== */
+  /*
+   * ==========================================================
+   * WORK DAY
+   * ==========================================================
+   */
 
-  const { data: day } =
-    await supabase
-      .from("boxoffice_days")
-      .select("*")
-      .eq("id", id)
-      .single();
+  const { data: day } = await supabase
+    .from("boxoffice_days")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  /* ==========================================================
-     CURRENT CINEMA
-  ========================================================== */
+  /*
+   * ==========================================================
+   * CURRENT CINEMA
+   * ==========================================================
+   */
 
-  const { data: cinema } =
-    await supabase
-      .from("cinemas")
-      .select("*")
-      .eq("id", cinemaId)
-      .single();
+  const { data: cinema } = await supabase
+    .from("cinemas")
+    .select("*")
+    .eq("id", cinemaId)
+    .single();
 
-  /* ==========================================================
-     ALL CINEMAS
-     تستخدم للبحث والاختيار
-  ========================================================== */
+  /*
+   * ==========================================================
+   * ALL CINEMAS
+   *
+   * تستخدم للتنقل بين السينمات.
+   * ==========================================================
+   */
 
-  const { data: cinemas } =
-    await supabase
-      .from("cinemas")
-      .select(
-        "id,code,name"
-      )
-      .order("name");
+  const { data: cinemas } = await supabase
+    .from("cinemas")
+    .select("id,code,name")
+    .order("name");
 
-  const cinemaList =
-    cinemas || [];
+  const cinemaList = cinemas || [];
 
-  /* ==========================================================
-     MOVIES
-  ========================================================== */
+  /*
+   * ==========================================================
+   * ACTIVE MOVIES
+   * ==========================================================
+   *
+   * كل الأفلام الموجودة في جدول movies تظل كما هي.
+   * لا نحذف ولا نعدل أي فيلم.
+   *
+   * هذه القائمة تستخدم عندما نحتاج لإضافة فيلم جديد للسينما.
+   * ==========================================================
+   */
 
-  const { data: movies } =
-    await supabase
-      .from("movies")
-      .select(
-        "id,title,code,poster"
-      )
-      .eq(
-        "is_active",
-        true
-      )
-      .order("title");
+  const { data: movies } = await supabase
+    .from("movies")
+    .select("id,title,code,poster")
+    .eq("is_active", true)
+    .order("title");
 
-  /* ==========================================================
-     MOVIE VERSIONS
+  const movieList = movies || [];
 
-     Arabic
-     English Movie
-     2D
-     3D
-     IMAX
-  ========================================================== */
+  /*
+   * ==========================================================
+   * MOVIE VERSIONS
+   * ==========================================================
+   */
 
-  const { data: versions } =
-    await supabase
-      .from("movie_versions")
-      .select("*")
-      .order("name");
+  const { data: versions } = await supabase
+    .from("movie_versions")
+    .select("*")
+    .order("name");
 
-  /* ==========================================================
-     EXISTING REPORTS
+  const versionList = versions || [];
 
-     البيانات المحفوظة بالفعل في قاعدة البيانات
-     ستظهر مرة أخرى عند فتح نفس السينما.
-  ========================================================== */
+  /*
+   * ==========================================================
+   * CURRENT DAY REPORTS
+   * ==========================================================
+   *
+   * هذه هي البيانات الفعلية لليوم الحالي.
+   * التذاكر والإيراد هنا تخص هذا اليوم فقط.
+   * ==========================================================
+   */
 
-  const { data: existingReports } =
-    await supabase
-      .from("boxoffice_reports")
-      .select("*")
-      .eq(
-        "day_id",
-        id
-      )
-      .eq(
-        "cinema_id",
-        cinemaId
-      );
+  const { data: currentReports } = await supabase
+    .from("boxoffice_reports")
+    .select("*")
+    .eq("day_id", id)
+    .eq("cinema_id", cinemaId);
 
-  /* ==========================================================
-     CINEMA NAVIGATION
-  ========================================================== */
+  const todayReports = currentReports || [];
+
+  /*
+   * ==========================================================
+   * HISTORICAL CINEMA MOVIES
+   * ==========================================================
+   *
+   * هنا النقطة الأساسية:
+   *
+   * نبحث في كل الأيام السابقة عن الأفلام التي سبق إدخالها
+   * لهذه السينما.
+   *
+   * بالتالي:
+   *
+   * اليوم الأول:
+   *   تدخل 10 أفلام.
+   *
+   * اليوم الثاني:
+   *   نفس الـ10 أفلام تظهر تلقائيًا.
+   *
+   * اليوم الثالث:
+   *   نفس القائمة تظهر.
+   *
+   * لو أضفت فيلمًا جديدًا:
+   *   يصبح جزءًا من قائمة السينما مستقبلًا.
+   *
+   * لا يتم حذف أي شيء من جدول movies.
+   * ==========================================================
+   */
+
+  const { data: historicalReports } = await supabase
+    .from("boxoffice_reports")
+    .select("movie_id,version_id")
+    .eq("cinema_id", cinemaId);
+
+  const history = historicalReports || [];
+
+  /*
+   * ==========================================================
+   * BUILD UNIQUE CINEMA MOVIE TEMPLATE
+   * ==========================================================
+   */
+
+  const templateMap = new Map();
+
+  for (const report of history) {
+    if (!report.movie_id) {
+      continue;
+    }
+
+    const movieId = Number(report.movie_id);
+
+    const versionId = report.version_id
+      ? Number(report.version_id)
+      : null;
+
+    const key =
+      `${movieId}_${versionId ?? "null"}`;
+
+    if (!templateMap.has(key)) {
+      templateMap.set(key, {
+        movie_id: movieId,
+        version_id: versionId,
+      });
+    }
+  }
+
+  /*
+   * ==========================================================
+   * MERGE CURRENT REPORTS
+   * ==========================================================
+   *
+   * بيانات اليوم الحالي لها الأولوية.
+   *
+   * لا ننسخ تذاكر أو إيرادات الأيام السابقة.
+   * ==========================================================
+   */
+
+  const mergedMap = new Map();
+
+  /*
+   * أولًا: القائمة التاريخية
+   * مع صفر لليوم الحالي.
+   */
+
+  for (const item of templateMap.values()) {
+    const key =
+      `${item.movie_id}_${item.version_id ?? "null"}`;
+
+    mergedMap.set(key, {
+      id: null,
+
+      day_id: Number(id),
+
+      cinema_id: Number(cinemaId),
+
+      movie_id: item.movie_id,
+
+      version_id: item.version_id,
+
+      tickets: 0,
+
+      revenue: 0,
+
+      report_date:
+        day?.work_date || null,
+
+      source: "manual",
+    });
+  }
+
+  /*
+   * ثانيًا:
+   * بيانات اليوم الحالي تستبدل الصف التاريخي.
+   */
+
+  for (const report of todayReports) {
+    if (!report.movie_id) {
+      continue;
+    }
+
+    const key =
+      `${Number(report.movie_id)}_${
+        report.version_id
+          ? Number(report.version_id)
+          : "null"
+      }`;
+
+    mergedMap.set(key, {
+      ...report,
+
+      day_id: Number(id),
+
+      cinema_id: Number(cinemaId),
+
+      movie_id: Number(report.movie_id),
+
+      version_id:
+        report.version_id
+          ? Number(report.version_id)
+          : null,
+
+      tickets: Number(report.tickets || 0),
+
+      revenue: Number(report.revenue || 0),
+    });
+  }
+
+  /*
+   * ==========================================================
+   * FINAL REPORT LIST
+   * ==========================================================
+   */
+
+  const cinemaMovieReports =
+    Array.from(mergedMap.values());
+
+  /*
+   * ==========================================================
+   * CINEMA NAVIGATION
+   * ==========================================================
+   */
 
   const cinemaIndex =
     cinemaList.findIndex(
       (item) =>
-        String(item.id) ===
-        String(cinemaId)
+        String(item.id) === String(cinemaId)
     );
 
   const previousCinema =
     cinemaIndex > 0
-      ? cinemaList[
-          cinemaIndex - 1
-        ]
+      ? cinemaList[cinemaIndex - 1]
       : null;
 
   const nextCinema =
     cinemaIndex >= 0 &&
-    cinemaIndex <
-      cinemaList.length - 1
-      ? cinemaList[
-          cinemaIndex + 1
-        ]
+    cinemaIndex < cinemaList.length - 1
+      ? cinemaList[cinemaIndex + 1]
       : null;
+
+  /*
+   * ==========================================================
+   * PAGE
+   * ==========================================================
+   */
 
   return (
     <main
@@ -151,15 +309,10 @@ export default async function CinemaPage({
     >
       <AdminNav />
 
-      {/* ======================================================
-          TOP NAVIGATION
-      ====================================================== */}
-
       <div
         style={{
           display: "flex",
-          justifyContent:
-            "space-between",
+          justifyContent: "space-between",
           alignItems: "center",
           gap: 12,
           flexWrap: "wrap",
@@ -185,8 +338,7 @@ export default async function CinemaPage({
               href={`/admin/work-day/${id}/cinema/${previousCinema.id}`}
               style={mutedNavLink}
             >
-              ←{" "}
-              {previousCinema.name}
+              ← {previousCinema.name}
             </Link>
           )}
 
@@ -201,21 +353,9 @@ export default async function CinemaPage({
         </div>
       </div>
 
-      {/* ======================================================
-          PAGE TITLE
-      ====================================================== */}
-
-      <h1
-        style={{
-          marginTop: 0,
-        }}
-      >
+      <h1 style={{ marginTop: 0 }}>
         🎬 {t.manageCinema}
       </h1>
-
-      {/* ======================================================
-          CINEMA INFORMATION
-      ====================================================== */}
 
       <div
         style={{
@@ -243,27 +383,40 @@ export default async function CinemaPage({
         >
           {t.workDay}
         </p>
+
+        <p
+          style={{
+            color: "#9ca3af",
+            marginTop: "6px",
+            marginBottom: 0,
+          }}
+        >
+          🎬 أفلام هذه السينما المحفوظة:
+          {" "}
+          <strong style={{ color: "#fff" }}>
+            {cinemaMovieReports.length}
+          </strong>
+        </p>
       </div>
-
-      {/* ======================================================
-          MANUAL ENTRY FORM
-
-          نمرر قائمة السينمات حتى يستطيع المستخدم البحث
-          والانتقال إلى أي سينما مباشرة.
-      ====================================================== */}
 
       <WorkDayForm
         dayId={id}
         cinemaId={cinemaId}
-        movies={movies || []}
-        versions={versions || []}
+
+        movies={movieList}
+
+        versions={versionList}
+
         existingReports={
-          existingReports || []
+          cinemaMovieReports
         }
+
         cinemas={cinemaList}
+
         currentCinema={
           cinema || null
         }
+
         t={t}
       />
     </main>

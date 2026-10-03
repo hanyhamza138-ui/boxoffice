@@ -1,3 +1,4 @@
+
 import { redirect } from "next/navigation";
 import { supabase } from "../../../../../lib/supabase";
 export const dynamic = "force-dynamic";
@@ -39,4 +40,3 @@ export default async function ManualPage({ params }) {
 
   redirect(`/admin/work-day/${id}/cinema/${cinema.id}`);
 }
-
